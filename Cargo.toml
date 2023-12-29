@@ -1,0 +1,31 @@
+[package]
+name = "oreq"
+version = "0.1.0"
+edition = "2021"
+authors = ["uzimaru0000"]
+
+[dependencies]
+anyhow = "1.0.75"
+clap = { version = "4.4.5", features = [
+    "std",
+    "color",
+    "help",
+    "usage",
+    "error-context",
+    "suggestions",
+    "derive",
+    "cargo",
+    "wrap_help",
+    "unicode",
+    "string",
+    "unstable-styles",
+] }
+color-eyre = "0.6.2"
+crossterm = { version = "0.27.0", features = ["serde", "event-stream"] }
+indexmap = "2.1.0"
+inquire = "0.6.2"
+openapiv3 = "2.0.0"
+reqwest = "0.11.23"
+serde = { version = "1.0.188", features = ["derive"] }
+serde_json = "1.0.107"
+serde_yaml = "0.9.28"

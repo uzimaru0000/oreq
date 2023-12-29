@@ -1,0 +1,133 @@
+openapi: 3.0.0
+info:
+  title: Random Duck API
+  version: 2.0
+servers:
+  - url: https://random-d.uk/api/v2
+paths:
+  /random:
+    get:
+      summary: Get a random duck image
+      responses:
+        "200":
+          description: A random duck image URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  message:
+                    type: string
+  /quack:
+    get:
+      summary: Same behavior as /random
+      responses:
+        "200":
+          description: A random duck image URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  message:
+                    type: string
+  /randomimg:
+    get:
+      summary: Returns a random image file
+      responses:
+        "200":
+          description: A random image file
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+  /list:
+    get:
+      summary: Returns a list of all available images and gifs
+      responses:
+        "200":
+          description: A list of filenames
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  images:
+                    type: array
+                    items:
+                      type: string
+                  gifs:
+                    type: array
+                    items:
+                      type: string
+                  http:
+                    type: array
+                    items:
+                      type: string
+                  image_count:
+                    type: integer
+                  gif_count:
+                    type: integer
+  /{num}.jpg:
+    get:
+      summary: Returns a specific image file
+      parameters:
+        - name: num
+          in: path
+          required: true
+          description: Image number
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: A specific image file
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+  /{num}.gif:
+    get:
+      summary: Returns a specific gif file
+      parameters:
+        - name: num
+          in: path
+          required: true
+          description: GIF number
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: A specific gif file
+          content:
+            image/gif:
+              schema:
+                type: string
+                format: binary
+  /http/{code}:
+    get:
+      summary: Returns an image file representing an HTTP status code
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: HTTP status code
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: An image file for the given HTTP status code
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary

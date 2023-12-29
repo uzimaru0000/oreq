@@ -1,0 +1,13 @@
+get:
+  summary: Get a list of users
+  parameters:
+    - $ref: "MyParameter.yaml"
+  responses:
+    "200":
+      description: A list of users
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "MySchema.yaml"
