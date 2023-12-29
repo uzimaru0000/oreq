@@ -222,6 +222,20 @@ pub fn flat_schema(
 
             Ok((select, is_required))
         }
+        openapiv3::SchemaKind::AnyOf { any_of } => {
+            // NOTE: treat oneOf and anyOf the same in input
+            let any_of = any_of
+                .iter()
+                .map(|x| {
+                    let x = x.item(api)?;
+                    let (x, _) = flat_schema(x, api, is_required)?;
+                    Ok(x)
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let select = Select::new("Select any of schema", any_of).prompt()?;
+
+            Ok((select, is_required))
+        }
         openapiv3::SchemaKind::AllOf { all_of } => {
             let all_of = items(all_of, api)
                 .map(|x| {
@@ -241,8 +255,7 @@ pub fn flat_schema(
 
             Ok((SchemaType::Object(obj), is_required))
         }
-        openapiv3::SchemaKind::AnyOf { .. } => todo!("AnyOf"),
-        openapiv3::SchemaKind::Not { .. } => todo!("Not"),
+        openapiv3::SchemaKind::Not { .. } => todo!("Not is not supported"),
         openapiv3::SchemaKind::Any(_) => todo!("Any"),
     }
 }
