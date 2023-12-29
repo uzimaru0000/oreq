@@ -20,7 +20,7 @@ where
     U: std::str::FromStr,
     U::Err: Error + Send + Sync + 'static,
 {
-    let mut split = s.split(":");
+    let mut split = s.split(':');
     let key = split.next().ok_or(anyhow!("No key"))?;
     let key = key.trim();
     let value = split.next().ok_or(anyhow!("No value"))?;

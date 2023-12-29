@@ -168,9 +168,9 @@ fn query_prompt(
     let is_required = parameter_data.required || !allow_empty_value.unwrap_or(true);
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
-            let schema = schema.item(&api)?;
-            let (schema, is_req) = flat_schema(schema, &api, is_required)?;
-            let prompt = SchemaPrompt::new(&name, &schema, &api);
+            let schema = schema.item(api)?;
+            let (schema, is_req) = flat_schema(schema, api, is_required)?;
+            let prompt = SchemaPrompt::new(&name, &schema, api);
             let schema = if is_req {
                 let val = prompt.prompt()?;
                 Some(val)
@@ -201,7 +201,7 @@ fn header_prompt(
     let name = parameter_data.name;
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
-            let schema = schema.item(&api)?;
+            let schema = schema.item(api)?;
             let (schema, is_req) = flat_schema(schema, api, parameter_data.required)?;
             let prompt = SchemaPrompt::new(&name, &schema, api);
             let schema = if is_req {
@@ -228,7 +228,7 @@ fn path_prompt(api: &OpenAPI, parameter_data: ParameterData, _style: PathStyle) 
     let name = parameter_data.name;
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
-            let schema = schema.item(&api)?;
+            let schema = schema.item(api)?;
             let (schema, _) = flat_schema(schema, api, parameter_data.required)?;
             SchemaPrompt::new(&name, &schema, api).prompt()
         }
@@ -265,7 +265,7 @@ fn body_prompt(api: &OpenAPI, req_body: &RequestBody) -> Result<String> {
         .and_then(|x| x.schema.to_owned())
         .ok_or(anyhow!("Content not found"))?;
 
-    let schema = req_body.item(&api)?;
+    let schema = req_body.item(api)?;
     let (schema, is_req) = flat_schema(schema, api, !schema.schema_data.nullable)?;
     let prompt = SchemaPrompt::new("Body", &schema, api);
 

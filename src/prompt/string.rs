@@ -32,15 +32,15 @@ impl<'a> StringPrompt<'a> {
             .filter_map(|x| x.to_owned())
             .collect::<Vec<_>>();
 
-        if enumeration.len() > 0 {
-            Some(Select::new(&self.message, enumeration))
+        if !enumeration.is_empty() {
+            Some(Select::new(self.message, enumeration))
         } else {
             None
         }
     }
 
     fn create_text_prompt(&self) -> Text {
-        let prompt = Text::new(&self.message).with_validator(RangeValidator {
+        let prompt = Text::new(self.message).with_validator(RangeValidator {
             min: self.string.min_length,
             max: self.string.max_length,
         });

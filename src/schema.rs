@@ -44,14 +44,13 @@ where
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
 
-        let result = match ext {
-            SupportExt::Json => {
-                serde_json::from_slice::<T>(&content).with_context(|| format!("Parse failed"))
-            }
-            SupportExt::Yaml => {
-                serde_yaml::from_slice::<T>(&content).with_context(|| format!("Parse failed"))
-            }
-        }?;
+        let result =
+            match ext {
+                SupportExt::Json => serde_json::from_slice::<T>(&content)
+                    .with_context(|| "Parse failed".to_string()),
+                SupportExt::Yaml => serde_yaml::from_slice::<T>(&content)
+                    .with_context(|| "Parse failed".to_string()),
+            }?;
 
         let base_dir = path.parent();
         let base_dir = if let Some(base_dir) = base_dir {
@@ -88,7 +87,7 @@ where
                 if reference.starts_with("#/") {
                     let idx = reference.rfind('/').unwrap();
                     let key = &reference[idx + 1..];
-                    let parameters = T::lookup(&api).with_context(|| anyhow!("No parameters"))?;
+                    let parameters = T::lookup(api).with_context(|| anyhow!("No parameters"))?;
                     return parameters
                         .get(key)
                         .unwrap_or_else(|| panic!("key {} is missing", key))
@@ -196,8 +195,8 @@ pub fn flat_schema(
                     .map(|(k, v)| {
                         let is_required = object.required.contains(&k);
                         let v = v.unbox();
-                        let v = v.item(&api)?;
-                        let v = flat_schema(&v, api, is_required)?;
+                        let v = v.item(api)?;
+                        let v = flat_schema(v, api, is_required)?;
                         Ok((k, v))
                     })
                     .collect::<Result<IndexMap<_, _>>>()?;
@@ -214,8 +213,8 @@ pub fn flat_schema(
             let one_of = one_of
                 .iter()
                 .map(|x| {
-                    let x = x.item(&api)?;
-                    let (x, _) = flat_schema(&x, api, is_required)?;
+                    let x = x.item(api)?;
+                    let (x, _) = flat_schema(x, api, is_required)?;
                     Ok(x)
                 })
                 .collect::<Result<Vec<_>>>()?;
@@ -249,9 +248,8 @@ mod tests {
         let schema = ReadSchema::<Type>::get_schema(path).unwrap();
 
         if let Type::Object(_) = schema.schema {
-            assert!(true);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 

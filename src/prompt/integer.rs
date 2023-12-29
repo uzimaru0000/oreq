@@ -27,15 +27,15 @@ impl<'a> IntegerPrompt<'a> {
             .filter_map(|x| x.to_owned())
             .collect::<Vec<_>>();
 
-        if enumeration.len() > 0 {
-            Some(Select::new(&self.message, enumeration))
+        if !enumeration.is_empty() {
+            Some(Select::new(self.message, enumeration))
         } else {
             None
         }
     }
 
     fn create_text_prompt(&self) -> CustomType<i64> {
-        CustomType::new(&self.message).with_validator(RangeValidator {
+        CustomType::new(self.message).with_validator(RangeValidator {
             min: self
                 .integer
                 .minimum

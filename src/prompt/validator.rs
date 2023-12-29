@@ -33,7 +33,7 @@ impl StringValidator for RangeValidator<usize> {
 impl CustomTypeValidator<f64> for RangeValidator<f64> {
     fn validate(&self, input: &f64) -> Result<Validation, inquire::CustomUserError> {
         if let Some(min) = self.min {
-            if *input < min as f64 {
+            if *input < min {
                 return Ok(Validation::Invalid(ErrorMessage::Custom(format!(
                     "Value must be greater than or equal to {}",
                     min
@@ -42,7 +42,7 @@ impl CustomTypeValidator<f64> for RangeValidator<f64> {
         }
 
         if let Some(max) = self.max {
-            if *input > max as f64 {
+            if *input > max {
                 return Ok(Validation::Invalid(ErrorMessage::Custom(format!(
                     "Value must be less than or equal to {}",
                     max
@@ -57,7 +57,7 @@ impl CustomTypeValidator<f64> for RangeValidator<f64> {
 impl CustomTypeValidator<i64> for RangeValidator<i64> {
     fn validate(&self, input: &i64) -> Result<Validation, inquire::CustomUserError> {
         if let Some(min) = self.min {
-            if *input < min as i64 {
+            if *input < min {
                 return Ok(Validation::Invalid(ErrorMessage::Custom(format!(
                     "Value must be greater than or equal to {}",
                     min
@@ -66,7 +66,7 @@ impl CustomTypeValidator<i64> for RangeValidator<i64> {
         }
 
         if let Some(max) = self.max {
-            if *input > max as i64 {
+            if *input > max {
                 return Ok(Validation::Invalid(ErrorMessage::Custom(format!(
                     "Value must be less than or equal to {}",
                     max

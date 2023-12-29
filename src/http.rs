@@ -49,7 +49,7 @@ impl TryInto<Url> for RequestInit {
             .filter_map(|(k, v)| {
                 if let Some(v) = v {
                     match v.as_str() {
-                        "true" | "false" => Some(format!("{}", k)),
+                        "true" | "false" => Some(k.to_string()),
                         _ => Some(format!("{}={}", k, v)),
                     }
                 } else {
@@ -58,7 +58,7 @@ impl TryInto<Url> for RequestInit {
             })
             .collect::<Vec<_>>();
 
-        if query.len() > 0 {
+        if !query.is_empty() {
             url.set_query(Some(&query.join("&")));
         }
         Ok(url)
@@ -76,7 +76,7 @@ impl<T: IntoUrl + Clone> Display for Response<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.status {
             200..=299 => write!(f, "{}", self.status.bg::<LightGreen>().fg::<White>()),
-            400..=499 | 500..=599 => write!(f, "{}", self.status.bg::<Red>().fg::<White>()),
+            400..=599 => write!(f, "{}", self.status.bg::<Red>().fg::<White>()),
             _ => write!(f, "{}", self.status.bg::<White>().fg::<Black>()),
         }?;
 

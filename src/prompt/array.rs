@@ -24,7 +24,7 @@ impl<'a> ArrayPrompt<'a> {
     fn prompt_item(&self, is_required: bool) -> Result<Vec<Value>> {
         if let Some(items) = self.array.to_owned().items {
             let items = items.unbox();
-            let items = items.item(&self.api)?;
+            let items = items.item(self.api)?;
             let (items, _) = flat_schema(items, self.api, is_required)?;
             let mut end = false;
             let mut values = Vec::new();
@@ -53,6 +53,6 @@ impl<'a> Prompt<Vec<Value>> for ArrayPrompt<'a> {
     }
 
     fn prompt_skippable(&self) -> Result<Option<Vec<Value>>> {
-        self.prompt_item(false).map(|x| Some(x))
+        self.prompt_item(false).map(Some)
     }
 }
