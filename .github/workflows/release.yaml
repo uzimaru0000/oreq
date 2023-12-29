@@ -62,7 +62,7 @@ jobs:
       - name: Generate release note
         id: gen_release_note
         run: |
-          RELEASE_NOTE=$(gh api -X POST /repos/${{ github.repository }}/releases/generate-notes -d '{"tag_name":"${{ github.ref_name }}"}' | jq -r .body)
+          RELEASE_NOTE=$( gh api -X POST /repos/${{ github.repository }}/releases/generate-notes -F "tag_name=v0.1.0" -q .body)
           echo "RELEASE_NOTE=$RELEASE_NOTE" >> $GITHUB_ENV
       - name: Create release
         run: |
