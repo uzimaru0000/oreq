@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use std::{env::current_dir, path::PathBuf};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context, Ok, Result};
 use indexmap::IndexMap;
 use inquire::Select;
 use openapiv3::{
@@ -222,7 +222,25 @@ pub fn flat_schema(
 
             Ok((select, is_required))
         }
-        openapiv3::SchemaKind::AllOf { .. } => todo!("AllOf"),
+        openapiv3::SchemaKind::AllOf { all_of } => {
+            let all_of = items(all_of, api)
+                .map(|x| {
+                    let x = x?;
+                    let (x, _) = flat_schema(x, api, is_required)?;
+                    Ok(x)
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let mut obj = IndexMap::new();
+            for x in all_of {
+                if let SchemaType::Object(x) = x {
+                    for (k, v) in x {
+                        obj.insert(k.to_owned(), v);
+                    }
+                }
+            }
+
+            Ok((SchemaType::Object(obj), is_required))
+        }
         openapiv3::SchemaKind::AnyOf { .. } => todo!("AnyOf"),
         openapiv3::SchemaKind::Not { .. } => todo!("Not"),
         openapiv3::SchemaKind::Any(_) => todo!("Any"),
@@ -231,8 +249,10 @@ pub fn flat_schema(
 
 #[cfg(test)]
 mod tests {
+    use crate::schema::SchemaType;
+
     use super::ReadSchema;
-    use openapiv3::{OpenAPI, PathItem, Type};
+    use openapiv3::{MediaType, OpenAPI, PathItem, Type};
     use std::path::PathBuf;
 
     #[test]
@@ -259,5 +279,40 @@ mod tests {
         let schema = ReadSchema::<PathItem>::get_schema(path).unwrap();
 
         assert!(schema.schema.get.is_some());
+    }
+
+    #[test]
+    fn test_flatten_all_of() {
+        let schema = r#"
+            schema:
+                allOf:
+                    - type: object
+                      required:
+                        - created_at
+                      properties:
+                        created_at:
+                            type: string
+                            format: date-time
+                        updated_at:
+                            type: string
+                            format: date-time
+                        deleted_at:
+                            type: string
+                            format: date-time
+                    - type: object
+                      properties:
+                        test:
+                            type: string
+        "#;
+        let schema = serde_yaml::from_str::<MediaType>(schema).unwrap();
+        let schema = schema.schema.unwrap();
+        let schema = schema.as_item().unwrap();
+        let (schema, _) = super::flat_schema(schema, &OpenAPI::default(), true).unwrap();
+
+        if let SchemaType::Object(obj) = schema {
+            assert_eq!(obj.len(), 4);
+        } else {
+            unreachable!()
+        }
     }
 }
