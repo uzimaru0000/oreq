@@ -11,7 +11,9 @@
 
 ### TODO
 
-- [ ] Resolve `oneOf`, `anyOf`
+- [ ] Resolve schema type
+  - [ ] anyOf
+  - [ ] not
 - [ ] Resolve external reference
 
 ## How to use
