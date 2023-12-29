@@ -226,7 +226,7 @@ pub fn flat_schema(
             let all_of = items(all_of, api)
                 .map(|x| {
                     let x = x?;
-                    let (x, _) = flat_schema(&x, api, is_required)?;
+                    let (x, _) = flat_schema(x, api, is_required)?;
                     Ok(x)
                 })
                 .collect::<Result<Vec<_>>>()?;
@@ -307,12 +307,12 @@ mod tests {
         let schema = serde_yaml::from_str::<MediaType>(schema).unwrap();
         let schema = schema.schema.unwrap();
         let schema = schema.as_item().unwrap();
-        let (schema, _) = super::flat_schema(&schema, &OpenAPI::default(), true).unwrap();
+        let (schema, _) = super::flat_schema(schema, &OpenAPI::default(), true).unwrap();
 
         if let SchemaType::Object(obj) = schema {
             assert_eq!(obj.len(), 4);
         } else {
-            assert!(false);
+            unreachable!()
         }
     }
 }
