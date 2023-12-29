@@ -10,6 +10,11 @@ repository = "https://github.com/uzimaru0000/oreq"
 readme = "README.md"
 keywords = ["curl", "openapi", "cli"]
 categories = ["development-tools", "network-programming", "cli"]
+exclude = [".github/*", "tests/*", ".vscode/*"]
+
+[[bin]]
+name = "oreq"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.75"
