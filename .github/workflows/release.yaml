@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
+          - x86_64-apple-darwin
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/cache_cargo
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1.0.1
+        with:
+          command: build
+          args: --release --target=${{ matrix.target }}
+          use-cross: true
+      - run: |
+          mkdir oreq-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/oreq* oreq-${{ matrix.target }}
+          cp README.md oreq-${{ matrix.target }}
+          cp LICENSE oreq-${{ matrix.target }}
+          zip -r oreq-${{ matrix.target }} oreq-${{ matrix.target }}
+      - uses: actions/upload-artifact@v1
+        with:
+          name: build-${{ matrix.target }}
+          path: oreq-${{ matrix.target }}.zip
+      - run: |
+          shasum -a 256 oreq-${{ matrix.target }}.zip | cut -d" " -f1 > ${{ matrix.target }}.sum
+      - uses: actions/upload-artifact@v1
+        with:
+          name: checksum-${{ matrix.target }}
+          path: ${{ matrix.target }}.sum
+
+  create-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Generate release note
+        id: gen_release_note
+        run: |
+          RELEASE_NOTE=$(gh api -X POST /repos/${{ github.repository }}/releases/generate-notes -d '{"tag_name":"${{ github.ref_name }}"}' | jq -r .body)
+          echo "RELEASE_NOTE=$RELEASE_NOTE" >> $GITHUB_ENV
+      - name: Create release
+        run: |
+          gh release create ${{ github.ref_name }} \
+              --title ${{ github.ref_name }} \
+              --notes "${{ steps.gen_release_note.RELEASE_NOTE }}" \
+              --draft
+
+  upload-release:
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
+          - x86_64-apple-darwin
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: build-${{ matrix.target }}
+      - name: upload release asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.ref_name }} ./build-${{ matrix.target }}/oreq-${{ matrix.target }}.zip
