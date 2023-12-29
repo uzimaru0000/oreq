@@ -1,8 +1,15 @@
 [package]
 name = "oreq"
+description = "The tool for interactively creating curl arguments from OpenAPI."
 version = "0.1.0"
 edition = "2021"
-authors = ["uzimaru0000"]
+authors = ["uzimaru0000 <shuji365630@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/uzimaru0000/oreq"
+repository = "https://github.com/uzimaru0000/oreq"
+readme = "README.md"
+keywords = ["curl", "openapi", "cli"]
+categories = ["development-tools", "network-programming", "cli"]
 
 [dependencies]
 anyhow = "1.0.75"

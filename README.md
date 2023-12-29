@@ -1,11 +1,12 @@
 <h1 align="center">:wrench: oreq</h1>
 
 <h2 align="center"><em>OpenAPI Request Prompts</em></h2>
-<h4 align="center">The tool for interactively creating curl arguments from OpenAPI."</h4>
 
 [![](https://img.shields.io/github/license/uzimaru0000/oreq?style=for-the-badge)](https://github.com/uzimaru0000/tv/blob/master/LICENSE)
 <!-- [![](https://img.shields.io/github/v/release/uzimaru0000/tv?style=for-the-badge)](https://github.com/uzimaru0000/tv/releases/latest) -->
 <!-- ![](https://img.shields.io/github/downloads/uzimaru0000/tv/total?style=for-the-badge) -->
+
+<h4 align="center">The tool for interactively creating curl arguments from OpenAPI.</h4>
 
 ## WIP :construction:
 
