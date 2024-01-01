@@ -94,3 +94,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ github.ref_name }} ./build-${{ matrix.target }}/oreq-${{ matrix.target }}.zip
+
+  update-homebrew:
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: checksum-x86_64-apple-darwin
+      - id: checksum
+        run: |
+          SHA_256=$(cat checksum-x86_64-apple-darwin/x86_64-apple-darwin.sum)
+          echo "sha256=$SHA_256" >> $GITHUB_OUTPUT
+      - id: version
+        run: |
+          VERSION=$(echo ${{ github.ref }} | sed -e "s#refs/tags/##g")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - id: token
+        uses: ./.github/actions/generate_token
+      - uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ steps.token.outputs.token }}
+          repository: uzimaru0000/homebrew-tap
+          event-type: update-brew
+          client-payload: '{ "formula": "oreq", "description": "The tool for interactively creating curl arguments from OpenAPI.", "url": "https://github.com/uzimaru0000/oreq/releases/download/${{ steps.version.outputs.version }}/oreq-x86_64-apple-darwin.zip", "sha256": "${{ steps.checksum.outputs.sha256 }}", "version": "${{ steps.version.outputs.version }}" }'

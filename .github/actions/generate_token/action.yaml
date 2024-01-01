@@ -1,0 +1,26 @@
+name: Generate GitHub token
+description: Generate a GitHub token for the GitHub App
+
+inputs:
+  app_id:
+    description: The ID of the GitHub App
+    required: true
+  private_key:
+    description: The private key of the GitHub App
+    required: true
+
+outputs:
+  token:
+    description: The generated GitHub token
+    value: ${{ steps.generate_token.outputs.token }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Generate token
+      id: generate_token
+      uses: tibdex/github-app-token@v2
+      with:
+        app_id: ${{ inputs.app_id }}
+        private_key: ${{ inputs.private_key }}
