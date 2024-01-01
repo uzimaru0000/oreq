@@ -72,8 +72,7 @@ jobs:
         run: |
           gh release create ${{ github.ref_name }} \
               --title ${{ github.ref_name }} \
-              --notes "${{ steps.gen_release_note.outputs.RELEASE_NOTE }}" \
-              --draft
+              --notes "${{ steps.gen_release_note.outputs.RELEASE_NOTE }}"
 
   upload-release:
     strategy:
@@ -113,6 +112,9 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - id: token
         uses: ./.github/actions/generate_token
+        with:
+          app_id: ${{ secrets.TOKEN_APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
       - uses: peter-evans/repository-dispatch@v1
         with:
           token: ${{ steps.token.outputs.token }}
