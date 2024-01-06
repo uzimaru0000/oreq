@@ -17,7 +17,7 @@ fn main() -> Result<()> {
         .or(api.schema.servers.first().map(|x| x.url.clone()))
         .with_context(|| "No servers in schema")?;
 
-    let mut init = APIPrompt::new(&api, &server).prompt()?;
+    let mut init = APIPrompt::new(&api, &server, cli.path, cli.method).prompt()?;
     if let Some(from_cli) = cli.headers {
         init.header = [init.header, from_cli].concat();
     }

@@ -21,6 +21,8 @@ use super::{config::render_config, schema::SchemaPrompt, Prompt};
 pub struct APIPrompt<'a> {
     api: &'a ReadSchema<OpenAPI>,
     base: &'a str,
+    path: Option<String>,
+    method: Option<Method>,
 }
 
 #[derive(Debug)]
@@ -32,8 +34,18 @@ enum Params {
 }
 
 impl<'a> APIPrompt<'a> {
-    pub fn new(api: &'a ReadSchema<OpenAPI>, base: &'a str) -> Self {
-        Self { api, base }
+    pub fn new(
+        api: &'a ReadSchema<OpenAPI>,
+        base: &'a str,
+        path: Option<String>,
+        method: Option<Method>,
+    ) -> Self {
+        Self {
+            api,
+            base,
+            path,
+            method,
+        }
     }
 
     pub fn prompt(&self) -> Result<RequestInit> {
@@ -44,24 +56,33 @@ impl<'a> APIPrompt<'a> {
             .iter()
             .map(|x| x.0)
             .collect::<Vec<_>>();
-        let path = Select::new("Path", path)
-            .with_render_config(render_config())
-            .prompt()?;
+        let path = if let Some(path) = self.path.clone() {
+            path
+        } else {
+            Select::new("Path", path)
+                .with_render_config(render_config())
+                .prompt()
+                .map(|x| x.to_owned())?
+        };
 
         let req = self
             .api
             .schema
             .paths
             .paths
-            .get(path)
+            .get(&path)
             .ok_or(anyhow!("Path not found"))?;
         let item = req.item(&self.api.schema)?;
 
         let method = item.iter().map(|x| x.0.to_uppercase()).collect::<Vec<_>>();
-        let method = Select::new("Method", method)
-            .with_render_config(render_config())
-            .prompt()?;
-        let method = Method::from_bytes(method.as_bytes())?;
+        let method = if let Some(method) = self.method.clone() {
+            method
+        } else {
+            let method = Select::new("Method", method)
+                .with_render_config(render_config())
+                .prompt()?;
+            Method::from_bytes(method.as_bytes())?
+        };
 
         let ope = match method {
             Method::GET => item.to_owned().get,
