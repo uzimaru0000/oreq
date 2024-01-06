@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde_json::Value;
 
 pub mod api;
 mod array;
@@ -10,7 +11,7 @@ mod schema;
 mod string;
 mod validator;
 
-pub trait Prompt<T> {
-    fn prompt(&self) -> Result<T>;
-    fn prompt_skippable(&self) -> Result<Option<T>>;
+pub trait Prompt {
+    fn prompt(&self) -> Result<Value>;
+    fn prompt_skippable(&self) -> Result<Option<Value>>;
 }

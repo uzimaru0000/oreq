@@ -1,6 +1,6 @@
 use anyhow::{Ok, Result};
 use openapiv3::{ArrayType, OpenAPI};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::schema::{flat_schema, ReferenceOrExt};
 
@@ -21,16 +21,17 @@ impl<'a> ArrayPrompt<'a> {
         }
     }
 
-    fn prompt_item(&self, is_required: bool) -> Result<Vec<Value>> {
+    fn prompt_item(&self, is_required: bool) -> Result<Value> {
         if let Some(items) = self.array.to_owned().items {
             let items = items.unbox();
             let items = items.item(self.api)?;
-            let (items, _) = flat_schema(items, self.api, is_required)?;
+            let (items, _, description) = flat_schema(items, self.api, is_required)?;
             let mut end = false;
             let mut values = Vec::new();
 
             while !end {
-                let prompt = SchemaPrompt::new(self.message, &items, self.api);
+                let description = description.as_deref();
+                let prompt = SchemaPrompt::new(self.message, description, &items, self.api);
                 let res = prompt.prompt_skippable()?;
 
                 if let Some(res) = res {
@@ -40,19 +41,19 @@ impl<'a> ArrayPrompt<'a> {
                 }
             }
 
-            Ok(values)
+            Ok(json!(values))
         } else {
-            Ok(Vec::new())
+            Ok(json!([]))
         }
     }
 }
 
-impl<'a> Prompt<Vec<Value>> for ArrayPrompt<'a> {
-    fn prompt(&self) -> Result<Vec<Value>> {
+impl<'a> Prompt for ArrayPrompt<'a> {
+    fn prompt(&self) -> Result<Value> {
         self.prompt_item(true)
     }
 
-    fn prompt_skippable(&self) -> Result<Option<Vec<Value>>> {
+    fn prompt_skippable(&self) -> Result<Option<Value>> {
         self.prompt_item(false).map(Some)
     }
 }

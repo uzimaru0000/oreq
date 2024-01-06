@@ -143,7 +143,7 @@ impl Lookup for PathItem {
 }
 
 pub enum SchemaType {
-    Object(IndexMap<String, (SchemaType, bool)>),
+    Object(IndexMap<String, (SchemaType, bool, Option<String>)>),
     Array(ArrayType),
     String(StringType),
     Number(NumberType),
@@ -157,7 +157,7 @@ impl Display for SchemaType {
             SchemaType::Object(obj) => {
                 let mut s = String::new();
                 for (k, v) in obj {
-                    let (v, is_required) = v;
+                    let (v, is_required, _) = v;
                     let v = format!("{}", v);
                     if *is_required {
                         s.push_str(&format!("    {}: {},\n", k, v));
@@ -185,7 +185,7 @@ pub fn flat_schema(
     schema: &Schema,
     api: &OpenAPI,
     is_required: bool,
-) -> Result<(SchemaType, bool)> {
+) -> Result<(SchemaType, bool, Option<String>)> {
     match &schema.schema_kind {
         openapiv3::SchemaKind::Type(types) => match types {
             Type::Object(object) => {
@@ -201,26 +201,50 @@ pub fn flat_schema(
                     })
                     .collect::<Result<IndexMap<_, _>>>()?;
 
-                Ok((SchemaType::Object(obj), is_required))
+                Ok((
+                    SchemaType::Object(obj),
+                    is_required,
+                    schema.clone().schema_data.description,
+                ))
             }
-            Type::Array(array) => Ok((SchemaType::Array(array.to_owned()), is_required)),
-            Type::String(t) => Ok((SchemaType::String(t.to_owned()), is_required)),
-            Type::Number(t) => Ok((SchemaType::Number(t.to_owned()), is_required)),
-            Type::Integer(t) => Ok((SchemaType::Integer(t.to_owned()), is_required)),
-            Type::Boolean(t) => Ok((SchemaType::Boolean(t.to_owned()), is_required)),
+            Type::Array(array) => Ok((
+                SchemaType::Array(array.to_owned()),
+                is_required,
+                schema.clone().schema_data.description,
+            )),
+            Type::String(t) => Ok((
+                SchemaType::String(t.to_owned()),
+                is_required,
+                schema.clone().schema_data.description,
+            )),
+            Type::Number(t) => Ok((
+                SchemaType::Number(t.to_owned()),
+                is_required,
+                schema.clone().schema_data.description,
+            )),
+            Type::Integer(t) => Ok((
+                SchemaType::Integer(t.to_owned()),
+                is_required,
+                schema.clone().schema_data.description,
+            )),
+            Type::Boolean(t) => Ok((
+                SchemaType::Boolean(t.to_owned()),
+                is_required,
+                schema.clone().schema_data.description,
+            )),
         },
         openapiv3::SchemaKind::OneOf { one_of } => {
             let one_of = one_of
                 .iter()
                 .map(|x| {
                     let x = x.item(api)?;
-                    let (x, _) = flat_schema(x, api, is_required)?;
+                    let (x, _, _) = flat_schema(x, api, is_required)?;
                     Ok(x)
                 })
                 .collect::<Result<Vec<_>>>()?;
             let select = Select::new("Select one of schema", one_of).prompt()?;
 
-            Ok((select, is_required))
+            Ok((select, is_required, None))
         }
         openapiv3::SchemaKind::AnyOf { any_of } => {
             // NOTE: treat oneOf and anyOf the same in input
@@ -228,19 +252,19 @@ pub fn flat_schema(
                 .iter()
                 .map(|x| {
                     let x = x.item(api)?;
-                    let (x, _) = flat_schema(x, api, is_required)?;
+                    let (x, _, _) = flat_schema(x, api, is_required)?;
                     Ok(x)
                 })
                 .collect::<Result<Vec<_>>>()?;
             let select = Select::new("Select any of schema", any_of).prompt()?;
 
-            Ok((select, is_required))
+            Ok((select, is_required, None))
         }
         openapiv3::SchemaKind::AllOf { all_of } => {
             let all_of = items(all_of, api)
                 .map(|x| {
                     let x = x?;
-                    let (x, _) = flat_schema(x, api, is_required)?;
+                    let (x, _, _) = flat_schema(x, api, is_required)?;
                     Ok(x)
                 })
                 .collect::<Result<Vec<_>>>()?;
@@ -253,7 +277,7 @@ pub fn flat_schema(
                 }
             }
 
-            Ok((SchemaType::Object(obj), is_required))
+            Ok((SchemaType::Object(obj), is_required, None))
         }
         openapiv3::SchemaKind::Not { .. } => todo!("Not is not supported"),
         openapiv3::SchemaKind::Any(_) => todo!("Any"),
@@ -320,7 +344,7 @@ mod tests {
         let schema = serde_yaml::from_str::<MediaType>(schema).unwrap();
         let schema = schema.schema.unwrap();
         let schema = schema.as_item().unwrap();
-        let (schema, _) = super::flat_schema(schema, &OpenAPI::default(), true).unwrap();
+        let (schema, _, _) = super::flat_schema(schema, &OpenAPI::default(), true).unwrap();
 
         if let SchemaType::Object(obj) = schema {
             assert_eq!(obj.len(), 4);

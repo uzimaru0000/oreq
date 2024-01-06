@@ -35,10 +35,8 @@ impl<'a> APIPrompt<'a> {
     pub fn new(api: &'a ReadSchema<OpenAPI>, base: &'a str) -> Self {
         Self { api, base }
     }
-}
 
-impl<'a> Prompt<RequestInit> for APIPrompt<'a> {
-    fn prompt(&self) -> Result<RequestInit> {
+    pub fn prompt(&self) -> Result<RequestInit> {
         let path = self
             .api
             .schema
@@ -151,10 +149,6 @@ impl<'a> Prompt<RequestInit> for APIPrompt<'a> {
 
         Ok(req_init)
     }
-
-    fn prompt_skippable(&self) -> Result<Option<RequestInit>> {
-        Ok(None)
-    }
 }
 
 fn query_prompt(
@@ -169,8 +163,9 @@ fn query_prompt(
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
             let schema = schema.item(api)?;
-            let (schema, is_req) = flat_schema(schema, api, is_required)?;
-            let prompt = SchemaPrompt::new(&name, &schema, api);
+            let (schema, is_req, description) = flat_schema(schema, api, is_required)?;
+            let description = description.as_deref();
+            let prompt = SchemaPrompt::new(&name, description, &schema, api);
             let schema = if is_req {
                 let val = prompt.prompt()?;
                 Some(val)
@@ -202,8 +197,9 @@ fn header_prompt(
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
             let schema = schema.item(api)?;
-            let (schema, is_req) = flat_schema(schema, api, parameter_data.required)?;
-            let prompt = SchemaPrompt::new(&name, &schema, api);
+            let (schema, is_req, description) = flat_schema(schema, api, parameter_data.required)?;
+            let description = description.as_deref();
+            let prompt = SchemaPrompt::new(&name, description, &schema, api);
             let schema = if is_req {
                 let val = prompt.prompt()?;
                 Some(val)
@@ -229,8 +225,9 @@ fn path_prompt(api: &OpenAPI, parameter_data: ParameterData, _style: PathStyle) 
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
             let schema = schema.item(api)?;
-            let (schema, _) = flat_schema(schema, api, parameter_data.required)?;
-            SchemaPrompt::new(&name, &schema, api).prompt()
+            let (schema, _, description) = flat_schema(schema, api, parameter_data.required)?;
+            let description = description.as_deref();
+            SchemaPrompt::new(&name, description, &schema, api).prompt()
         }
         ParameterSchemaOrContent::Content(_) => Err(anyhow!("Content not supported")),
     }?;
@@ -266,8 +263,9 @@ fn body_prompt(api: &OpenAPI, req_body: &RequestBody) -> Result<String> {
         .ok_or(anyhow!("Content not found"))?;
 
     let schema = req_body.item(api)?;
-    let (schema, is_req) = flat_schema(schema, api, !schema.schema_data.nullable)?;
-    let prompt = SchemaPrompt::new("Body", &schema, api);
+    let (schema, is_req, description) = flat_schema(schema, api, !schema.schema_data.nullable)?;
+    let description = description.as_deref();
+    let prompt = SchemaPrompt::new("Body", description, &schema, api);
 
     if is_req {
         let body = prompt.prompt()?;
