@@ -1,4 +1,4 @@
-use crate::prompt::{api::APIPrompt, Prompt};
+use crate::prompt::api::APIPrompt;
 use anyhow::{Context, Result};
 use clap::Parser;
 use openapiv3::OpenAPI;
