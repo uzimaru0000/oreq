@@ -7,14 +7,15 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 pub struct Cli {
+    #[arg(help = "OpenAPI schema path", value_hint = clap::ValueHint::FilePath)]
     pub schema: PathBuf,
-    #[arg(long, short)]
+    #[arg(long, short, help = "Base URL", value_hint = clap::ValueHint::Url)]
     pub base_url: Option<String>,
     #[arg(long, short = 'H', value_parser = parse_key_val::<String, String>)]
     pub headers: Option<Vec<(String, String)>>,
-    #[arg(long, short)]
+    #[arg(long, short, help = "Path to request")]
     pub path: Option<String>,
-    #[arg(long = "request", short = 'X')]
+    #[arg(long = "request", short = 'X', help = "Method to use")]
     pub method: Option<Method>,
 }
 

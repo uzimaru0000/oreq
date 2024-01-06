@@ -2,9 +2,9 @@
 
 <h2 align="center"><em>OpenAPI Request Prompts</em></h2>
 
-[![](https://img.shields.io/github/license/uzimaru0000/oreq?style=for-the-badge)](https://github.com/uzimaru0000/tv/blob/master/LICENSE)
-<!-- [![](https://img.shields.io/github/v/release/uzimaru0000/tv?style=for-the-badge)](https://github.com/uzimaru0000/tv/releases/latest) -->
-<!-- ![](https://img.shields.io/github/downloads/uzimaru0000/tv/total?style=for-the-badge) -->
+[![](https://img.shields.io/github/license/uzimaru0000/oreq?style=for-the-badge)](https://github.com/uzimaru0000/oreq/blob/master/LICENSE)
+[![](https://img.shields.io/github/v/release/uzimaru0000/oreq?style=for-the-badge)](https://github.com/uzimaru0000/oreq/releases/latest)
+![](https://img.shields.io/github/downloads/uzimaru0000/oreq/total?style=for-the-badge)
 
 <h4 align="center">The tool for interactively creating curl arguments from OpenAPI.</h4>
 
@@ -12,12 +12,11 @@
 
 ### TODO
 
-- [ ] Resolve schema type
-  - [ ] anyOf
-  - [ ] not
 - [ ] Resolve external reference
 
 ## How to use
+
+[![asciicast](https://asciinema.org/a/630142.svg)](https://asciinema.org/a/630142)
 
 ### USAGE
 ```
@@ -27,8 +26,10 @@ oreq [OPTIONS] <SCHEMA>
 ### OPTIONS
 ```
 Options:
-  -b, --base-url <BASE_URL>  
+  -b, --base-url <BASE_URL>  Base URL
   -H, --headers <HEADERS>    
+  -p, --path <PATH>          Path to request
+  -X, --request <METHOD>     Method to use
   -h, --help                 Print help
   -V, --version              Print version
 ```
