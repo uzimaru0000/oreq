@@ -14,6 +14,7 @@ use std::{io::Write, vec};
 use crate::{
     http::RequestInit,
     schema::{flat_schema, items, ReadSchema, ReferenceOrExt},
+    serde::SerdeValue,
 };
 
 use super::{config::render_config, schema::SchemaPrompt, Prompt};
@@ -198,13 +199,9 @@ fn query_prompt(
         }
         ParameterSchemaOrContent::Content(_) => Err(anyhow!("Content not supported")),
     }?;
-    let value = value.and_then(|x| match x {
-        serde_json::Value::Bool(b) => Some(b.to_string()),
-        serde_json::Value::Number(n) => Some(n.to_string()),
-        serde_json::Value::String(s) => Some(s),
-        serde_json::Value::Null => None,
-        _ => serde_json::from_value(x).ok(),
-    });
+    let value = value
+        .map::<SerdeValue, _>(|x| x.into())
+        .and_then(|x| x.to_query_string());
 
     Ok(Params::Query(name, value))
 }

@@ -7,6 +7,7 @@ mod cli;
 mod http;
 mod prompt;
 mod schema;
+mod serde;
 
 fn main() -> Result<()> {
     let cli = cli::Cli::parse();
