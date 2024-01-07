@@ -5,7 +5,6 @@ pub mod api;
 mod array;
 mod boolean;
 mod config;
-mod integer;
 mod number;
 mod schema;
 mod string;

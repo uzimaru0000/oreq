@@ -79,3 +79,60 @@ impl<'a> Prompt for StringPrompt<'a> {
         .with_context(|| anyhow!("Failed to get {}", self.message))
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "manual")]
+mod tests {
+    use indoc::indoc;
+    use openapiv3::StringType;
+    use serde_json::json;
+
+    use crate::prompt::Prompt;
+
+    use super::StringPrompt;
+
+    #[test]
+    fn test_string_prompt_enum() {
+        let schema = indoc! {"
+            type: string
+            enum:
+                - foo
+                - bar
+        "};
+        let schema = serde_yaml::from_str::<StringType>(schema).unwrap();
+
+        let prompt = StringPrompt::new("select foo", None, &schema);
+        let res = prompt.prompt().unwrap();
+
+        assert_eq!(res, json!("foo"));
+    }
+
+    #[test]
+    fn test_string_prompt_skippable() {
+        let schema = indoc! {"
+            type: string
+            enum:
+                - foo
+                - bar
+        "};
+        let schema = serde_yaml::from_str::<StringType>(schema).unwrap();
+
+        let prompt = StringPrompt::new("skip", None, &schema);
+        let res = prompt.prompt_skippable().unwrap();
+
+        assert_eq!(res, None);
+    }
+
+    #[test]
+    fn test_string_prompt_simple() {
+        let schema = indoc! {"
+            type: string
+        "};
+        let schema = serde_yaml::from_str::<StringType>(schema).unwrap();
+
+        let prompt = StringPrompt::new("string", None, &schema);
+        let res = prompt.prompt().unwrap();
+
+        assert!(res.is_string());
+    }
+}

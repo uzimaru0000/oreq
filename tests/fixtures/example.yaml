@@ -165,6 +165,40 @@ paths:
       responses:
         "200":
           description: the PR was successfully merged
+  /2.0/items/{itemIds}:
+    get:
+      operationId: getItemsByIds
+      parameters:
+        - name: itemIds
+          in: path
+          required: true
+          schema:
+            type: string
+          style: simple
+          explode: false
+        - name: tag
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: number
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        "200":
+          description: An array of item objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/item"
 components:
   links:
     UserRepositories:
@@ -233,3 +267,12 @@ components:
         deleted_at:
           type: string
           format: date-time
+    item:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string

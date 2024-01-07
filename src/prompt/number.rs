@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use anyhow::{Context, Result};
 use inquire::{CustomType, Select};
-use openapiv3::NumberType;
-use serde_json::{json, Value};
+use openapiv3::{IntegerType, NumberType};
+use serde_json::{json, Number, Value};
 
 use crate::prompt::validator::RangeValidator;
 
@@ -10,18 +12,68 @@ use super::{
     Prompt,
 };
 
-pub struct NumberPrompt<'a> {
-    message: &'a str,
-    description: Option<&'a str>,
-    number: &'a NumberType,
+#[derive(Debug, Clone)]
+pub struct NumType<T>
+where
+    T: FromStr + serde::Serialize,
+{
+    pub multiple_of: Option<Number>,
+    pub exclusive_minimum: bool,
+    pub exclusive_maximum: bool,
+    pub minimum: Option<Number>,
+    pub maximum: Option<Number>,
+    pub enumeration: Vec<Option<Number>>,
+    _phantom: std::marker::PhantomData<T>,
+}
+impl<T: FromStr + serde::Serialize> From<NumberType> for NumType<T> {
+    fn from(number: NumberType) -> Self {
+        Self {
+            multiple_of: number.multiple_of.and_then(Number::from_f64),
+            exclusive_minimum: number.exclusive_minimum,
+            exclusive_maximum: number.exclusive_maximum,
+            minimum: number.minimum.and_then(Number::from_f64),
+            maximum: number.maximum.and_then(Number::from_f64),
+            enumeration: number
+                .enumeration
+                .iter()
+                .map(|x| x.and_then(Number::from_f64))
+                .collect(),
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+impl<T: FromStr + serde::Serialize> From<IntegerType> for NumType<T> {
+    fn from(integer: IntegerType) -> Self {
+        Self {
+            multiple_of: integer.multiple_of.and_then(|x| Number::from_f64(x as f64)),
+            exclusive_minimum: integer.exclusive_minimum,
+            exclusive_maximum: integer.exclusive_maximum,
+            minimum: integer.minimum.and_then(|x| Number::from_f64(x as f64)),
+            maximum: integer.maximum.and_then(|x| Number::from_f64(x as f64)),
+            enumeration: integer
+                .enumeration
+                .iter()
+                .map(|x| x.and_then(|x| Number::from_f64(x as f64)))
+                .collect(),
+            _phantom: std::marker::PhantomData,
+        }
+    }
 }
 
-impl<'a> NumberPrompt<'a> {
-    pub fn new(message: &'a str, description: Option<&'a str>, number: &'a NumberType) -> Self {
+pub struct NumberPrompt<'a, T: FromStr + serde::Serialize> {
+    message: &'a str,
+    description: Option<&'a str>,
+    number: NumType<T>,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+impl<'a, T: FromStr + serde::Serialize> NumberPrompt<'a, T> {
+    pub fn new(message: &'a str, description: Option<&'a str>, number: NumType<T>) -> Self {
         Self {
             message,
             description,
             number,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -30,7 +82,7 @@ impl<'a> NumberPrompt<'a> {
             .number
             .enumeration
             .iter()
-            .map(|x| x.map(|x| json!(x)))
+            .map(|x| x.clone().and_then(|x| serde_json::to_value(x).ok()))
             .filter_map(|x| x.to_owned())
             .collect::<Vec<_>>();
 
@@ -46,10 +98,28 @@ impl<'a> NumberPrompt<'a> {
 
     fn create_prompt(&self) -> CustomType<Value> {
         let mut prompt = CustomType::new(self.message)
-            .with_parser(&|x| Ok(json!(x)))
+            .with_parser(&|x| x.parse::<T>().map(|x| json!(x)).map_err(|_| ()))
             .with_validator(RangeValidator {
-                min: self.number.minimum,
-                max: self.number.maximum,
+                min: self.number.minimum.clone().and_then(|x| {
+                    let min = x.as_f64()?;
+                    Some(
+                        min - if self.number.exclusive_minimum {
+                            1.0
+                        } else {
+                            0.0
+                        },
+                    )
+                }),
+                max: self.number.maximum.clone().and_then(|x| {
+                    let max = x.as_f64()?;
+                    Some(
+                        max + if self.number.exclusive_maximum {
+                            1.0
+                        } else {
+                            0.0
+                        },
+                    )
+                }),
             });
         prompt.help_message = self.description;
 
@@ -57,7 +127,7 @@ impl<'a> NumberPrompt<'a> {
     }
 }
 
-impl<'a> Prompt for NumberPrompt<'a> {
+impl<'a, T: FromStr + serde::Serialize> Prompt for NumberPrompt<'a, T> {
     fn prompt(&self) -> Result<Value> {
         let select = self.create_select_prompt();
 
@@ -84,5 +154,40 @@ impl<'a> Prompt for NumberPrompt<'a> {
                 .prompt_skippable()
         }
         .with_context(|| format!("Failed to get {}", self.message))
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "manual")]
+mod tests {
+    use indoc::indoc;
+
+    use super::*;
+    use crate::prompt::Prompt;
+
+    #[test]
+    fn test_number_prompt_type_number() {
+        let schema = indoc! {"
+            type: number
+        "};
+        let schema = serde_yaml::from_str::<NumberType>(schema).unwrap();
+
+        let prompt = NumberPrompt::<f64>::new("test", Some("input 2.0"), schema.into());
+
+        let v = prompt.prompt().unwrap();
+        assert_eq!(v, json!(2.0));
+    }
+
+    #[test]
+    fn test_number_prompt_type_integer() {
+        let schema = indoc! {"
+            type: integer
+        "};
+        let schema = serde_yaml::from_str::<IntegerType>(schema).unwrap();
+
+        let prompt = NumberPrompt::<i64>::new("test", Some("input 2"), schema.into());
+
+        let v = prompt.prompt().unwrap();
+        assert_eq!(v, json!(2));
     }
 }

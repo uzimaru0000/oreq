@@ -289,6 +289,7 @@ mod tests {
     use crate::schema::SchemaType;
 
     use super::ReadSchema;
+    use indoc::indoc;
     use openapiv3::{MediaType, OpenAPI, PathItem, Type};
     use std::path::PathBuf;
 
@@ -320,7 +321,7 @@ mod tests {
 
     #[test]
     fn test_flatten_all_of() {
-        let schema = r#"
+        let schema = indoc! {"
             schema:
                 allOf:
                     - type: object
@@ -340,7 +341,7 @@ mod tests {
                       properties:
                         test:
                             type: string
-        "#;
+        "};
         let schema = serde_yaml::from_str::<MediaType>(schema).unwrap();
         let schema = schema.schema.unwrap();
         let schema = schema.as_item().unwrap();

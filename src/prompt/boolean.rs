@@ -45,3 +45,19 @@ impl<'a> Prompt for BooleanPrompt<'a> {
             .with_context(|| format!("Failed to get {}", self.message))
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "manual")]
+mod tests {
+    use serde_json::json;
+
+    use super::BooleanPrompt;
+    use crate::prompt::Prompt;
+
+    #[test]
+    fn test_boolean_prompt() {
+        let prompt = BooleanPrompt::new("Do you like Rust?", None);
+        let v = prompt.prompt().unwrap();
+        assert_eq!(v, json!(true));
+    }
+}
