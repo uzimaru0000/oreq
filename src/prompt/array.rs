@@ -66,7 +66,7 @@ mod tests {
     use indoc::indoc;
     use openapiv3::{ArrayType, OpenAPI};
 
-    use crate::{prompt::Prompt, serde::SerdeValue};
+    use crate::prompt::Prompt;
 
     use super::ArrayPrompt;
 
