@@ -18,9 +18,9 @@ impl AppError {
                 inquire::InquireError::OperationInterrupted => {
                     ("Operation interrupted".to_string(), 0)
                 }
-                _ => (format!("{}", e), 1),
+                _ => (format!("Error: {}", e), 1),
             },
-            _ => (format!("{}", self), 1),
+            _ => (format!("Error: {}", self), 1),
         }
     }
 }
