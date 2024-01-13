@@ -1,6 +1,5 @@
-use anyhow::Result;
 use indexmap::IndexMap;
-use inquire::Confirm;
+use inquire::{error::InquireResult, Confirm};
 use openapiv3::OpenAPI;
 use serde_json::Value;
 
@@ -25,7 +24,7 @@ impl<'a> ObjectPrompt<'a> {
     }
 }
 impl<'a> Prompt for ObjectPrompt<'a> {
-    fn prompt(&self) -> Result<Value> {
+    fn prompt(&self) -> InquireResult<Value> {
         let mut obj = serde_json::Map::new();
 
         for (k, (v, is_req, description)) in self.obj {
@@ -45,7 +44,7 @@ impl<'a> Prompt for ObjectPrompt<'a> {
         Ok(obj.into())
     }
 
-    fn prompt_skippable(&self) -> Result<Option<Value>> {
+    fn prompt_skippable(&self) -> InquireResult<Option<Value>> {
         let is_continue =
             Confirm::new(format!("Continue to input {}?", self.message).as_str()).prompt()?;
         if !is_continue {
@@ -101,11 +100,11 @@ impl<'a> SchemaPrompt<'a> {
 }
 
 impl<'a> Prompt for SchemaPrompt<'a> {
-    fn prompt(&self) -> Result<Value> {
+    fn prompt(&self) -> InquireResult<Value> {
         self.create_prompt().prompt()
     }
 
-    fn prompt_skippable(&self) -> Result<Option<Value>> {
+    fn prompt_skippable(&self) -> InquireResult<Option<Value>> {
         self.create_prompt().prompt_skippable()
     }
 }

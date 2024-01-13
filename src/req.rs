@@ -1,11 +1,6 @@
-use std::fmt::Display;
-
 use anyhow::Result;
-use color_eyre::owo_colors::{
-    colors::css::{Black, LightGreen, Red, White},
-    OwoColorize,
-};
-use reqwest::{IntoUrl, Method, Url};
+use http::Method;
+use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct RequestInit {
@@ -19,7 +14,7 @@ pub struct RequestInit {
 }
 
 impl RequestInit {
-    pub fn to_curl_args(&self) -> Result<Vec<String>> {
+    pub fn to_curl_args(&self) -> Result<Vec<String>, url::ParseError> {
         let mut args = vec![];
 
         args.push(format!("-X {}", self.method));
@@ -39,9 +34,9 @@ impl RequestInit {
 }
 
 impl TryInto<Url> for RequestInit {
-    type Error = anyhow::Error;
+    type Error = url::ParseError;
 
-    fn try_into(self) -> Result<Url> {
+    fn try_into(self) -> Result<Url, Self::Error> {
         let mut url = Url::parse(&format!("{}{}", self.base, self.path))?;
         let query = self
             .query
@@ -62,31 +57,5 @@ impl TryInto<Url> for RequestInit {
             url.set_query(Some(&query.join("&")));
         }
         Ok(url)
-    }
-}
-
-pub struct Response<T: IntoUrl + Clone> {
-    pub url: T,
-    pub status: u16,
-    pub headers: Vec<(String, String)>,
-    pub body: String,
-}
-
-impl<T: IntoUrl + Clone> Display for Response<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.status {
-            200..=299 => write!(f, "{}", self.status.bg::<LightGreen>().fg::<White>()),
-            400..=599 => write!(f, "{}", self.status.bg::<Red>().fg::<White>()),
-            _ => write!(f, "{}", self.status.bg::<White>().fg::<Black>()),
-        }?;
-
-        let url = self.url.clone().into_url().map_err(|_| std::fmt::Error)?;
-        writeln!(f, " {}", url)?;
-
-        for (k, v) in &self.headers {
-            writeln!(f, "{}: {}", k, v)?;
-        }
-
-        writeln!(f, "{}", self.body)
     }
 }

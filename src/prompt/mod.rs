@@ -1,4 +1,4 @@
-use anyhow::Result;
+use inquire::error::InquireResult;
 use serde_json::Value;
 
 pub mod api;
@@ -11,6 +11,6 @@ mod string;
 mod validator;
 
 pub trait Prompt {
-    fn prompt(&self) -> Result<Value>;
-    fn prompt_skippable(&self) -> Result<Option<Value>>;
+    fn prompt(&self) -> InquireResult<Value>;
+    fn prompt_skippable(&self) -> InquireResult<Option<Value>>;
 }
