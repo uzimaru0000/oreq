@@ -21,7 +21,7 @@ default = []
 manual = []
 
 [dependencies]
-anyhow = "1.0.75"
+anyhow = { version = "1.0.75", features = ["std", "backtrace"] }
 clap = { version = "4.4.5", features = [
     "std",
     "color",
@@ -38,14 +38,16 @@ clap = { version = "4.4.5", features = [
 ] }
 color-eyre = "0.6.2"
 crossterm = { version = "0.27.0", features = ["serde", "event-stream"] }
+http = "1.0.0"
 indexmap = "2.1.0"
 indoc = "2.0.4"
 inquire = "0.6.2"
 openapiv3 = "2.0.0"
-reqwest = "0.11.23"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.107"
 serde_yaml = "0.9.28"
+thiserror = "1.0.56"
+url = "2.5.0"
 
 [dev-dependencies]
 indoc = "2.0.4"

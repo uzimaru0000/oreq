@@ -3,16 +3,16 @@ use color_eyre::owo_colors::{
     colors::css::{DarkGreen, White},
     OwoColorize,
 };
-use inquire::Select;
+use http::Method;
+use inquire::{error::InquireResult, InquireError, Select};
 use openapiv3::{
     CookieStyle, HeaderStyle, OpenAPI, Parameter, ParameterData, ParameterSchemaOrContent,
     PathStyle, QueryStyle, RequestBody,
 };
-use reqwest::Method;
-use std::{io::Write, vec};
+use std::vec;
 
 use crate::{
-    http::RequestInit,
+    req::RequestInit,
     schema::{flat_schema, items, ReadSchema, ReferenceOrExt},
     serde::SerdeValue,
 };
@@ -49,7 +49,7 @@ impl<'a> APIPrompt<'a> {
         }
     }
 
-    pub fn prompt(&self) -> Result<RequestInit> {
+    pub fn prompt(&self) -> InquireResult<RequestInit> {
         let path = self
             .api
             .schema
@@ -72,8 +72,11 @@ impl<'a> APIPrompt<'a> {
             .paths
             .paths
             .get(&path)
-            .ok_or(anyhow!("Path not found"))?;
-        let item = req.item(&self.api.schema)?;
+            .ok_or(anyhow!("`{}` is not found", path))
+            .map_err(|x| InquireError::Custom(x.into()))?;
+        let item = req
+            .item(&self.api.schema)
+            .map_err(|x| InquireError::Custom(x.into()))?;
 
         let method = item.iter().map(|x| x.0.to_uppercase()).collect::<Vec<_>>();
         let method = if let Some(method) = self.method.clone() {
@@ -82,7 +85,7 @@ impl<'a> APIPrompt<'a> {
             let method = Select::new("Method", method)
                 .with_render_config(render_config())
                 .prompt()?;
-            Method::from_bytes(method.as_bytes())?
+            Method::from_bytes(method.as_bytes()).map_err(|x| InquireError::Custom(x.into()))?
         };
 
         let ope = match method {
@@ -96,9 +99,12 @@ impl<'a> APIPrompt<'a> {
             Method::TRACE => item.to_owned().trace,
             _ => unreachable!(),
         }
-        .ok_or(anyhow!("Method not found"))?;
+        .ok_or(anyhow!("`{}` method is not found", method))
+        .map_err(|x| InquireError::Custom(x.into()))?;
 
-        let params = items(&ope.parameters, &self.api.schema).collect::<Result<Vec<_>>>()?;
+        let params = items(&ope.parameters, &self.api.schema)
+            .collect::<Result<Vec<_>>>()
+            .map_err(|x| InquireError::Custom(x.into()))?;
 
         let params = params
             .into_iter()
@@ -128,10 +134,12 @@ impl<'a> APIPrompt<'a> {
                     style,
                 } => cookie_prompt(&self.api.schema, parameter_data, style),
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<InquireResult<Vec<_>>>()?;
 
         let req_body = if let Some(req_body) = ope.request_body {
-            let req_body = req_body.item(&self.api.schema)?;
+            let req_body = req_body
+                .item(&self.api.schema)
+                .map_err(|x| InquireError::Custom(x.into()))?;
             let body = body_prompt(&self.api.schema, req_body)?;
             Some(body)
         } else {
@@ -179,13 +187,16 @@ fn query_prompt(
     _allow_reserved: bool,
     _style: QueryStyle,
     allow_empty_value: Option<bool>,
-) -> Result<Params> {
+) -> InquireResult<Params> {
     let name = parameter_data.name;
     let is_required = parameter_data.required || !allow_empty_value.unwrap_or(true);
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
-            let schema = schema.item(api)?;
-            let (schema, is_req, description) = flat_schema(schema, api, is_required)?;
+            let schema = schema
+                .item(api)
+                .map_err(|x| InquireError::Custom(x.into()))?;
+            let (schema, is_req, description) = flat_schema(schema, api, is_required)
+                .map_err(|x| InquireError::Custom(x.into()))?;
             let description = description.as_deref();
             let prompt = SchemaPrompt::new(&name, description, &schema, api);
             let schema = if is_req {
@@ -197,7 +208,9 @@ fn query_prompt(
 
             Ok(schema)
         }
-        ParameterSchemaOrContent::Content(_) => Err(anyhow!("Content not supported")),
+        ParameterSchemaOrContent::Content(_) => Err(InquireError::Custom(
+            anyhow!("Content not supported").into(),
+        )),
     }?;
     let value = value
         .map::<SerdeValue, _>(|x| x.into())
@@ -210,12 +223,15 @@ fn header_prompt(
     api: &OpenAPI,
     parameter_data: ParameterData,
     _style: HeaderStyle,
-) -> Result<Params> {
+) -> InquireResult<Params> {
     let name = parameter_data.name;
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
-            let schema = schema.item(api)?;
-            let (schema, is_req, description) = flat_schema(schema, api, parameter_data.required)?;
+            let schema = schema
+                .item(api)
+                .map_err(|x| InquireError::Custom(x.into()))?;
+            let (schema, is_req, description) = flat_schema(schema, api, parameter_data.required)
+                .map_err(|x| InquireError::Custom(x.into()))?;
             let description = description.as_deref();
             let prompt = SchemaPrompt::new(&name, description, &schema, api);
             let schema = if is_req {
@@ -227,27 +243,38 @@ fn header_prompt(
 
             Ok(schema)
         }
-        ParameterSchemaOrContent::Content(_) => Err(anyhow!("Content not supported")),
+        ParameterSchemaOrContent::Content(_) => Err(InquireError::Custom(
+            anyhow!("Content not supported").into(),
+        )),
     }?;
 
     if let Some(value) = value {
-        let value = serde_json::from_value(value)?;
+        let value = serde_json::from_value(value).map_err(|x| InquireError::Custom(x.into()))?;
         Ok(Params::Header(name, value))
     } else {
         Ok(Params::Header(name, "".to_owned()))
     }
 }
 
-fn path_prompt(api: &OpenAPI, parameter_data: ParameterData, _style: PathStyle) -> Result<Params> {
+fn path_prompt(
+    api: &OpenAPI,
+    parameter_data: ParameterData,
+    _style: PathStyle,
+) -> InquireResult<Params> {
     let name = parameter_data.name;
     let value = match parameter_data.format {
         ParameterSchemaOrContent::Schema(schema) => {
-            let schema = schema.item(api)?;
-            let (schema, _, description) = flat_schema(schema, api, parameter_data.required)?;
+            let schema = schema
+                .item(api)
+                .map_err(|x| InquireError::Custom(x.into()))?;
+            let (schema, _, description) = flat_schema(schema, api, parameter_data.required)
+                .map_err(|x| InquireError::Custom(x.into()))?;
             let description = description.as_deref();
             SchemaPrompt::new(&name, description, &schema, api).prompt()
         }
-        ParameterSchemaOrContent::Content(_) => Err(anyhow!("Content not supported")),
+        ParameterSchemaOrContent::Content(_) => Err(InquireError::Custom(
+            anyhow!("Content not supported").into(),
+        )),
     }?;
     let value = match value {
         serde_json::Value::Bool(b) => Ok(b.to_string()),
@@ -255,7 +282,8 @@ fn path_prompt(api: &OpenAPI, parameter_data: ParameterData, _style: PathStyle) 
         serde_json::Value::String(s) => Ok(s),
         serde_json::Value::Null => Ok("".to_owned()),
         _ => serde_json::from_value(value),
-    }?;
+    }
+    .map_err(|x| InquireError::Custom(x.into()))?;
 
     Ok(Params::Path(name, value))
 }
@@ -264,32 +292,33 @@ fn cookie_prompt(
     _api: &OpenAPI,
     _parameter_data: ParameterData,
     _style: CookieStyle,
-) -> Result<Params> {
+) -> InquireResult<Params> {
     todo!("cookie")
 }
 
-fn body_prompt(api: &OpenAPI, req_body: &RequestBody) -> Result<String> {
-    writeln!(
-        std::io::stderr(),
-        "{}",
-        " Input request body ".bg::<DarkGreen>().fg::<White>()
-    )?;
+fn body_prompt(api: &OpenAPI, req_body: &RequestBody) -> InquireResult<String> {
+    eprintln!("{}", " Input request body ".bg::<DarkGreen>().fg::<White>());
     let req_body = req_body
         .content
         .get("application/json")
         .and_then(|x| x.schema.to_owned())
-        .ok_or(anyhow!("Content not found"))?;
+        .ok_or(InquireError::Custom(anyhow!("Content is not found").into()))?;
 
-    let schema = req_body.item(api)?;
-    let (schema, is_req, description) = flat_schema(schema, api, !schema.schema_data.nullable)?;
+    let schema = req_body
+        .item(api)
+        .map_err(|x| InquireError::Custom(x.into()))?;
+    let (schema, is_req, description) = flat_schema(schema, api, !schema.schema_data.nullable)
+        .map_err(|x| InquireError::Custom(x.into()))?;
     let description = description.as_deref();
     let prompt = SchemaPrompt::new("Body", description, &schema, api);
 
     if is_req {
         let body = prompt.prompt()?;
-        Ok(body.to_string())
+        let body = serde_json::to_string(&body).map_err(|x| InquireError::Custom(x.into()))?;
+        Ok(body)
     } else {
         let body = prompt.prompt_skippable()?;
-        Ok(body.unwrap_or_default().to_string())
+        let body = serde_json::to_string(&body).map_err(|x| InquireError::Custom(x.into()))?;
+        Ok(body)
     }
 }

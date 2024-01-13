@@ -1,5 +1,4 @@
-use anyhow::{Context, Result};
-use inquire::Confirm;
+use inquire::{error::InquireResult, Confirm};
 use serde_json::{json, Value};
 
 use super::{
@@ -29,20 +28,18 @@ impl<'a> BooleanPrompt<'a> {
 }
 
 impl<'a> Prompt for BooleanPrompt<'a> {
-    fn prompt(&self) -> Result<Value> {
+    fn prompt(&self) -> InquireResult<Value> {
         self.create_prompt()
             .with_render_config(render_config())
             .prompt()
             .map(|x| json!(x))
-            .with_context(|| format!("Failed to get {}", self.message))
     }
 
-    fn prompt_skippable(&self) -> Result<Option<Value>> {
+    fn prompt_skippable(&self) -> InquireResult<Option<Value>> {
         self.create_prompt()
             .with_render_config(render_config_with_skkipable())
             .prompt_skippable()
             .map(|x| x.map(|x| json!(x)))
-            .with_context(|| format!("Failed to get {}", self.message))
     }
 }
 

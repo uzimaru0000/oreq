@@ -1,30 +1,23 @@
-use crate::prompt::api::APIPrompt;
-use anyhow::{Context, Result};
+use std::process::exit;
+
 use clap::Parser;
-use openapiv3::OpenAPI;
 
 mod cli;
-mod http;
+mod error;
 mod prompt;
+mod req;
 mod schema;
 mod serde;
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
+    let res = cli.run();
 
-    let api = schema::ReadSchema::<OpenAPI>::get_schema(cli.schema)?;
-    let server = cli
-        .base_url
-        .or(api.schema.servers.first().map(|x| x.url.clone()))
-        .with_context(|| "No servers in schema")?;
-
-    let mut init = APIPrompt::new(&api, &server, cli.path, cli.method).prompt()?;
-    if let Some(from_cli) = cli.headers {
-        init.header = [init.header, from_cli].concat();
+    if let Err(e) = res {
+        let (msg, code) = e.show();
+        eprintln!("{}", msg);
+        exit(code)
     }
-    let args = init.to_curl_args()?;
-
-    println!("{}", args.join(" "));
 
     Ok(())
 }

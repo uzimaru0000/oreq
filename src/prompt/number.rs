@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
-use anyhow::{Context, Result};
-use inquire::{CustomType, Select};
+use inquire::{error::InquireResult, CustomType, Select};
 use openapiv3::{IntegerType, NumberType};
 use serde_json::{json, Number, Value};
 
@@ -128,7 +127,7 @@ impl<'a, T: FromStr + serde::Serialize> NumberPrompt<'a, T> {
 }
 
 impl<'a, T: FromStr + serde::Serialize> Prompt for NumberPrompt<'a, T> {
-    fn prompt(&self) -> Result<Value> {
+    fn prompt(&self) -> InquireResult<Value> {
         let select = self.create_select_prompt();
 
         if let Some(select) = select {
@@ -138,10 +137,9 @@ impl<'a, T: FromStr + serde::Serialize> Prompt for NumberPrompt<'a, T> {
                 .with_render_config(render_config())
                 .prompt()
         }
-        .with_context(|| format!("Failed to get {}", self.message))
     }
 
-    fn prompt_skippable(&self) -> Result<Option<Value>> {
+    fn prompt_skippable(&self) -> InquireResult<Option<Value>> {
         let select = self.create_select_prompt();
 
         if let Some(select) = select {
@@ -153,7 +151,6 @@ impl<'a, T: FromStr + serde::Serialize> Prompt for NumberPrompt<'a, T> {
                 .with_render_config(render_config_with_skkipable())
                 .prompt_skippable()
         }
-        .with_context(|| format!("Failed to get {}", self.message))
     }
 }
 

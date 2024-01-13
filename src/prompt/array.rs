@@ -1,5 +1,5 @@
-use anyhow::{Ok, Result};
 use color_eyre::owo_colors::{colors::css::Yellow, OwoColorize};
+use inquire::{error::InquireResult, InquireError};
 use openapiv3::{ArrayType, OpenAPI};
 use serde_json::{json, Value};
 
@@ -22,14 +22,17 @@ impl<'a> ArrayPrompt<'a> {
         }
     }
 
-    fn prompt_item(&self, is_required: bool) -> Result<Value> {
+    fn prompt_item(&self, is_required: bool) -> InquireResult<Value> {
         if let Some(items) = self.array.to_owned().items {
             let items = items.unbox();
-            let items = items.item(self.api)?;
-            let (items, _, description) = flat_schema(items, self.api, is_required)?;
+            let items = items
+                .item(self.api)
+                .map_err(|x| InquireError::Custom(x.into()))?;
+            let (items, _, description) = flat_schema(items, self.api, is_required)
+                .map_err(|x| InquireError::Custom(x.into()))?;
             let mut values = Vec::new();
 
-            println!("{}", " Press esc to exit ".bg::<Yellow>());
+            eprintln!("{}", " Press esc to exit ".bg::<Yellow>());
             for idx in 0.. {
                 let description = description.as_deref();
                 let msg = format!("{}[{}]", self.message, idx);
@@ -51,11 +54,11 @@ impl<'a> ArrayPrompt<'a> {
 }
 
 impl<'a> Prompt for ArrayPrompt<'a> {
-    fn prompt(&self) -> Result<Value> {
+    fn prompt(&self) -> InquireResult<Value> {
         self.prompt_item(true)
     }
 
-    fn prompt_skippable(&self) -> Result<Option<Value>> {
+    fn prompt_skippable(&self) -> InquireResult<Option<Value>> {
         self.prompt_item(false).map(Some)
     }
 }
