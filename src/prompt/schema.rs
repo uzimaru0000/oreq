@@ -123,7 +123,7 @@ impl<'a> SchemaPrompt<'a> {
                 self.message,
                 t,
                 self.api,
-                &self.args_input,
+                self.args_input,
             )),
             SchemaType::Array(t) => Box::new(ArrayPrompt::new(self.message, t, self.api)),
         }
