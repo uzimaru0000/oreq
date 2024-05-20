@@ -11,6 +11,7 @@ use openapiv3::{
     RequestBody, Response, Schema, StringType, Type,
 };
 use serde::de::DeserializeOwned;
+use serde_json::{json, Map};
 
 enum SupportExt {
     Json,
@@ -281,6 +282,33 @@ pub fn flat_schema(
         }
         openapiv3::SchemaKind::Not { .. } => todo!("Not is not supported"),
         openapiv3::SchemaKind::Any(_) => todo!("Any"),
+    }
+}
+
+pub fn args_to_input_body(args: &Vec<(String, serde_json::Value)>) -> Result<serde_json::Value> {
+    let mut root = Map::new();
+
+    for (key, value) in args {
+        insert_nested(&mut root, key, value);
+    }
+
+    Ok(serde_json::Value::Object(root))
+}
+
+fn insert_nested(map: &mut Map<String, serde_json::Value>, key: &str, value: &serde_json::Value) {
+    let parts: Vec<&str> = key.split('.').collect();
+    let mut current = map;
+
+    for (i, part) in parts.iter().enumerate() {
+        if i == parts.len() - 1 {
+            current.insert(part.to_string(), value.clone());
+        } else {
+            current = current
+                .entry(part.to_string())
+                .or_insert_with(|| json!({}))
+                .as_object_mut()
+                .expect("Expected JSON object");
+        }
     }
 }
 

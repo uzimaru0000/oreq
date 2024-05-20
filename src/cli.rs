@@ -1,11 +1,16 @@
 use anyhow::{anyhow, Result};
 use http::Method;
 use openapiv3::OpenAPI;
+use serde_json::json;
 use std::{error::Error, path::PathBuf};
 
 use clap::Parser;
 
-use crate::{error::AppError, prompt::api::APIPrompt, schema};
+use crate::{
+    error::AppError,
+    prompt::api::APIPrompt,
+    schema::{self, args_to_input_body},
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -20,6 +25,12 @@ pub struct Cli {
     pub path: Option<String>,
     #[arg(long = "request", short = 'X', help = "Method to use")]
     pub method: Option<Method>,
+    #[arg(long = "param", short = 'P', help = "Path parameters", value_parser = parse_body)]
+    pub path_param: Option<Vec<(String, serde_json::Value)>>,
+    #[arg(long, short, help = "Query parameters", value_parser = parse_body)]
+    pub query_param: Option<Vec<(String, serde_json::Value)>>,
+    #[arg(long, short, help = "Request body", value_parser = parse_body)]
+    pub field: Option<Vec<(String, serde_json::Value)>>,
 }
 
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
@@ -38,6 +49,18 @@ where
     Ok((key.parse()?, value.parse()?))
 }
 
+fn parse_body(
+    s: &str,
+) -> Result<(String, serde_json::Value), Box<dyn Error + Send + Sync + 'static>> {
+    let mut pair = s.split('=');
+    let key = pair.next().ok_or(anyhow!("No key"))?;
+    let key = key.trim();
+    let value = pair.next().ok_or(anyhow!("No value"))?;
+    let value = value.trim();
+
+    Ok((key.to_string(), json!(value)))
+}
+
 impl Cli {
     pub fn run(&self) -> Result<(), AppError> {
         let api = schema::ReadSchema::<OpenAPI>::get_schema(self.schema.clone())
@@ -48,9 +71,21 @@ impl Cli {
             .or(api.schema.servers.first().map(|x| x.url.clone()))
             .ok_or(AppError::NoServers)?;
 
-        let mut init = APIPrompt::new(&api, &server, self.path.clone(), self.method.clone())
-            .prompt()
-            .map_err(AppError::PromptError)?;
+        let mut init = APIPrompt::new(
+            &api,
+            &server,
+            self.path.clone(),
+            self.method.clone(),
+            self.path_param
+                .clone()
+                .and_then(|x| args_to_input_body(&x).ok()),
+            self.query_param
+                .clone()
+                .and_then(|x| args_to_input_body(&x).ok()),
+            self.field.clone().and_then(|x| args_to_input_body(&x).ok()),
+        )
+        .prompt()
+        .map_err(AppError::PromptError)?;
         if let Some(from_cli) = self.headers.clone() {
             init.header = [init.header, from_cli].concat();
         }

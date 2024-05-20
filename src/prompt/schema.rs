@@ -13,14 +13,21 @@ struct ObjectPrompt<'a> {
     message: &'a str,
     obj: &'a IndexMap<String, (SchemaType, bool, Option<String>)>,
     api: &'a OpenAPI,
+    args_input: &'a Option<Value>,
 }
 impl<'a> ObjectPrompt<'a> {
     pub fn new(
         message: &'a str,
         obj: &'a IndexMap<String, (SchemaType, bool, Option<String>)>,
         api: &'a OpenAPI,
+        args_input: &'a Option<Value>,
     ) -> Self {
-        Self { message, obj, api }
+        Self {
+            message,
+            obj,
+            api,
+            args_input,
+        }
     }
 }
 impl<'a> Prompt for ObjectPrompt<'a> {
@@ -28,8 +35,24 @@ impl<'a> Prompt for ObjectPrompt<'a> {
         let mut obj = serde_json::Map::new();
 
         for (k, (v, is_req, description)) in self.obj {
+            let input = self.args_input.as_ref().and_then(|x| x.get(k));
+            if let Some(input) = input {
+                let matched = match v {
+                    SchemaType::String(_) => input.is_string(),
+                    SchemaType::Number(_) => input.is_number(),
+                    SchemaType::Integer(_) => input.is_i64(),
+                    SchemaType::Boolean(_) => input.is_boolean(),
+                    _ => false,
+                };
+                if matched {
+                    obj.insert(k.to_owned(), input.clone());
+                    continue;
+                }
+            }
+
             let description = description.as_ref().map(|x| x.as_str());
-            let prompt = SchemaPrompt::new(k, description, v, self.api);
+            let args_input = self.args_input.clone().and_then(|x| x.get(k).cloned());
+            let prompt = SchemaPrompt::new(k, description, v, self.api, &args_input);
             if is_req.to_owned() {
                 let v = prompt.prompt()?;
                 obj.insert(k.to_owned(), v);
@@ -62,6 +85,7 @@ pub struct SchemaPrompt<'a> {
     description: Option<&'a str>,
     schema: &'a SchemaType,
     api: &'a OpenAPI,
+    args_input: &'a Option<Value>,
 }
 
 impl<'a> SchemaPrompt<'a> {
@@ -70,12 +94,14 @@ impl<'a> SchemaPrompt<'a> {
         description: Option<&'a str>,
         schema: &'a SchemaType,
         api: &'a OpenAPI,
+        args_input: &'a Option<Value>,
     ) -> Self {
         Self {
             message,
             description,
             schema,
             api,
+            args_input,
         }
     }
 
@@ -93,7 +119,12 @@ impl<'a> SchemaPrompt<'a> {
                 t.clone().into(),
             )),
             SchemaType::Boolean(_) => Box::new(BooleanPrompt::new(self.message, self.description)),
-            SchemaType::Object(t) => Box::new(ObjectPrompt::new(self.message, t, self.api)),
+            SchemaType::Object(t) => Box::new(ObjectPrompt::new(
+                self.message,
+                t,
+                self.api,
+                &self.args_input,
+            )),
             SchemaType::Array(t) => Box::new(ArrayPrompt::new(self.message, t, self.api)),
         }
     }
