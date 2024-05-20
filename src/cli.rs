@@ -52,10 +52,8 @@ where
 fn parse_body(
     s: &str,
 ) -> Result<(String, serde_json::Value), Box<dyn Error + Send + Sync + 'static>> {
-    let mut pair = s.split('=');
-    let key = pair.next().ok_or(anyhow!("No key"))?;
+    let (key, value) = s.split_once('=').ok_or(anyhow!("Invalid format"))?;
     let key = key.trim();
-    let value = pair.next().ok_or(anyhow!("No value"))?;
     let value = value.trim();
 
     Ok((key.to_string(), json!(value)))
