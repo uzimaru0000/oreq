@@ -36,7 +36,7 @@ impl<'a> ArrayPrompt<'a> {
             for idx in 0.. {
                 let description = description.as_deref();
                 let msg = format!("{}[{}]", self.message, idx);
-                let prompt = SchemaPrompt::new(&msg, description, &items, self.api);
+                let prompt = SchemaPrompt::new(&msg, description, &items, self.api, &None);
                 let res = prompt.prompt_skippable()?;
 
                 if let Some(res) = res {
