@@ -14,16 +14,10 @@ jobs:
       matrix:
         target:
           - x86_64-unknown-linux-gnu
-          - x86_64-pc-windows-gnu
-          - x86_64-apple-darwin
           - aarch64-apple-darwin
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-          - target: x86_64-pc-windows-gnu
-            os: ubuntu-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
           - target: aarch64-apple-darwin
             os: macos-latest
 
@@ -102,10 +96,10 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
         with:
-          name: checksum-x86_64-apple-darwin
+          name: checksum-aarch64-apple-darwin
       - id: checksum
         run: |
-          SHA_256=$(cat checksum-x86_64-apple-darwin/x86_64-apple-darwin.sum)
+          SHA_256=$(cat checksum-aarch64-apple-darwin/aarch64-apple-darwin.sum)
           echo "sha256=$SHA_256" >> $GITHUB_OUTPUT
       - id: version
         run: |
@@ -121,7 +115,7 @@ jobs:
           token: ${{ steps.token.outputs.token }}
           repository: uzimaru0000/homebrew-tap
           event-type: update-brew
-          client-payload: '{ "formula": "oreq", "description": "The tool for interactively creating curl arguments from OpenAPI.", "url": "https://github.com/uzimaru0000/oreq/releases/download/${{ steps.version.outputs.version }}/oreq-x86_64-apple-darwin.zip", "sha256": "${{ steps.checksum.outputs.sha256 }}", "version": "${{ steps.version.outputs.version }}" }'
+          client-payload: '{ "formula": "oreq", "description": "The tool for interactively creating curl arguments from OpenAPI.", "url": "https://github.com/uzimaru0000/oreq/releases/download/${{ steps.version.outputs.version }}/oreq-aarch64-apple-darwin.zip", "sha256": "${{ steps.checksum.outputs.sha256 }}", "version": "${{ steps.version.outputs.version }}" }'
 
   publish-crates:
     needs: [create-release]
