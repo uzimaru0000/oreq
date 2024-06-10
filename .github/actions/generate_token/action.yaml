@@ -20,7 +20,7 @@ runs:
   steps:
     - name: Generate token
       id: generate_token
-      uses: tibdex/github-app-token@v2
+      uses: actions/create-github-app-token@v1
       with:
-        app_id: ${{ inputs.app_id }}
-        private_key: ${{ inputs.private_key }}
+        app-id: ${{ inputs.app_id }}
+        private-key: ${{ inputs.private_key }}

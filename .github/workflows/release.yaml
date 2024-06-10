@@ -59,20 +59,12 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
-      - name: Generate release note
-        id: gen_release_note
-        run: |
-          RELEASE_NOTE=$(gh api -X POST /repos/${{ github.repository }}/releases/generate-notes -F "tag_name=v0.1.0" -q .body)
-          {
-            echo 'RELEASE_NOTE<<EOF'
-            echo "$RELEASE_NOTE"
-            echo EOF
-          } >> $GITHUB_OUTPUT
       - name: Create release
         run: |
           gh release create ${{ github.ref_name }} \
+              --generate-notes \
               --title ${{ github.ref_name }} \
-              --notes "${{ steps.gen_release_note.outputs.RELEASE_NOTE }}"
+              --target ${{ github.sha }}
 
   upload-release:
     strategy:
