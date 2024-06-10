@@ -24,3 +24,4 @@ runs:
       with:
         app-id: ${{ inputs.app_id }}
         private-key: ${{ inputs.private_key }}
+        repositorys: "homebrew-tap"
