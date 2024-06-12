@@ -1,5 +1,5 @@
-use inquire::{error::InquireResult, CustomType, Select};
-use openapiv3::StringType;
+use inquire::{error::InquireResult, CustomType, DateSelect, Password, Select};
+use openapiv3::{StringFormat, StringType, VariantOrUnknownOrEmpty};
 use serde_json::{json, Value};
 
 use super::{
@@ -47,14 +47,51 @@ impl<'a> StringPrompt<'a> {
 
         prompt
     }
+
+    fn create_password_prompt(&self) -> Option<Password> {
+        if let VariantOrUnknownOrEmpty::Item(StringFormat::Password) = self.string.format {
+            let mut prompt = Password::new(&self.message)
+                .with_display_mode(inquire::PasswordDisplayMode::Masked)
+                .without_confirmation();
+            prompt.help_message = self.description;
+
+            Some(prompt)
+        } else {
+            None
+        }
+    }
+
+    fn create_date_prompt(&self) -> Option<DateSelect> {
+        if let VariantOrUnknownOrEmpty::Item(StringFormat::Date) = self.string.format {
+            let mut prompt = DateSelect::new(&self.message)
+                .with_vim_mode(true)
+                .with_week_start(chrono::Weekday::Sun);
+            prompt.help_message = self.description;
+
+            Some(prompt)
+        } else {
+            None
+        }
+    }
 }
 
 impl<'a> Prompt for StringPrompt<'a> {
     fn prompt(&self) -> InquireResult<Value> {
         let select = self.create_select_prompt();
+        let password = self.create_password_prompt();
+        let date = self.create_date_prompt();
 
         if let Some(select) = select {
             select.with_render_config(render_config()).prompt()
+        } else if let Some(password) = password {
+            password
+                .with_render_config(render_config())
+                .prompt()
+                .map(|x| json!(x))
+        } else if let Some(date) = date {
+            date.with_render_config(render_config())
+                .prompt()
+                .map(|x| json!(x.to_string()))
         } else {
             self.create_prompt()
                 .with_render_config(render_config())
@@ -64,11 +101,22 @@ impl<'a> Prompt for StringPrompt<'a> {
 
     fn prompt_skippable(&self) -> InquireResult<Option<Value>> {
         let select = self.create_select_prompt();
+        let password = self.create_password_prompt();
+        let date = self.create_date_prompt();
 
         if let Some(select) = select {
             select
                 .with_render_config(render_config_with_skkipable())
                 .prompt_skippable()
+        } else if let Some(password) = password {
+            password
+                .with_render_config(render_config_with_skkipable())
+                .prompt_skippable()
+                .map(|x| x.map(|x| json!(x)))
+        } else if let Some(date) = date {
+            date.with_render_config(render_config_with_skkipable())
+                .prompt_skippable()
+                .map(|x| x.map(|x| json!(x.to_string())))
         } else {
             self.create_prompt()
                 .with_render_config(render_config_with_skkipable())
