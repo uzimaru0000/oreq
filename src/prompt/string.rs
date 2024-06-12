@@ -50,7 +50,7 @@ impl<'a> StringPrompt<'a> {
 
     fn create_password_prompt(&self) -> Option<Password> {
         if let VariantOrUnknownOrEmpty::Item(StringFormat::Password) = self.string.format {
-            let mut prompt = Password::new(&self.message)
+            let mut prompt = Password::new(self.message)
                 .with_display_mode(inquire::PasswordDisplayMode::Masked)
                 .without_confirmation();
             prompt.help_message = self.description;
@@ -63,7 +63,7 @@ impl<'a> StringPrompt<'a> {
 
     fn create_date_prompt(&self) -> Option<DateSelect> {
         if let VariantOrUnknownOrEmpty::Item(StringFormat::Date) = self.string.format {
-            let mut prompt = DateSelect::new(&self.message)
+            let mut prompt = DateSelect::new(self.message)
                 .with_vim_mode(true)
                 .with_week_start(chrono::Weekday::Sun);
             prompt.help_message = self.description;
