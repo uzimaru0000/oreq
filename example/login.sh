@@ -1,6 +1,6 @@
 #!/bin/bash
 
-oreq tests/fixtures/firebase.yaml \
+cargo run -- tests/fixtures/firebase.yaml \
 	--path /v1/accounts:signInWithPassword \
 	-X POST \
 	--query-param key=$KEY |
