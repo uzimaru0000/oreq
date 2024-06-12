@@ -157,11 +157,22 @@ paths:
           application/json:
             schema:
               allOf:
-                - $ref: "#/components/schemas/dateInfo"
+                - $ref: "#/components/schemas/dateTimeInfo"
                 - type: object
                   properties:
                     test:
                       type: string
+      responses:
+        "200":
+          description: the PR was successfully merged
+  /2.0/schema/test/date:
+    post:
+      operationId: testAllOf
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/dateInfo"
       responses:
         "200":
           description: the PR was successfully merged
@@ -254,6 +265,20 @@ components:
         author:
           $ref: "#/components/schemas/user"
     dateInfo:
+      type: object
+      required:
+        - created_at
+      properties:
+        created_at:
+          type: string
+          format: date
+        updated_at:
+          type: string
+          format: date
+        deleted_at:
+          type: string
+          format: date
+    dateTimeInfo:
       type: object
       required:
         - created_at
