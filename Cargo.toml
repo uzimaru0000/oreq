@@ -1,7 +1,7 @@
 [package]
 name = "oreq"
 description = "The tool for interactively creating curl arguments from OpenAPI."
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["uzimaru0000 <shuji365630@gmail.com>"]
 license = "MIT"
