@@ -16,7 +16,7 @@
 
 ## How to use
 
-[![asciicast](https://asciinema.org/a/630142.svg)](https://asciinema.org/a/630142)
+![demo](./.github/images/demo.gif)
 
 ### USAGE
 ```
