@@ -6,7 +6,6 @@ mod cli;
 mod error;
 mod prompt;
 mod req;
-mod schema;
 mod serde;
 
 fn main() -> anyhow::Result<()> {

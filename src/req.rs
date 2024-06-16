@@ -1,16 +1,26 @@
 use anyhow::Result;
-use http::Method;
+use serde_json::Value;
 use url::Url;
+
+use crate::serde::SerdeValue;
+
+#[derive(Debug, Clone)]
+pub enum Params {
+    Query(String, Option<Value>),
+    Header(String, Value),
+    Path(String, Value),
+    Cookie(String, Value),
+}
 
 #[derive(Debug, Clone)]
 pub struct RequestInit {
-    pub method: Method,
+    pub method: String,
     pub base: String,
     pub path: String,
-    pub query: Vec<(String, Option<String>)>,
-    pub header: Vec<(String, String)>,
-    pub cookie: Vec<(String, String)>,
-    pub body: Option<String>,
+    pub query: Vec<Params>,
+    pub header: Vec<Params>,
+    pub cookie: Vec<Params>,
+    pub body: Option<Value>,
 }
 
 impl RequestInit {
@@ -21,8 +31,10 @@ impl RequestInit {
         let url: Url = self.clone().try_into()?;
         args.push(format!("'{}'", url));
 
-        for (k, v) in self.header.iter() {
-            args.push(format!("-H '{}: {}'", k, v));
+        for header in self.header.iter() {
+            if let Params::Header(k, v) = header {
+                args.push(format!("-H '{}: {}'", k, v));
+            }
         }
 
         if let Some(body) = &self.body {
@@ -41,12 +53,15 @@ impl TryInto<Url> for RequestInit {
         let query = self
             .query
             .iter()
-            .filter_map(|(k, v)| {
-                if let Some(v) = v {
-                    match v.as_str() {
-                        "true" | "false" => Some(k.to_string()),
-                        _ => Some(format!("{}={}", k, v)),
-                    }
+            .filter_map(|query| {
+                if let Params::Query(k, v) = query {
+                    Some(
+                        v.clone()
+                            .map::<SerdeValue, _>(|x| x.into())
+                            .and_then(|x| x.to_query_string())
+                            .map(|x| format!("{}={}", k, x))
+                            .unwrap_or(k.clone()),
+                    )
                 } else {
                     None
                 }

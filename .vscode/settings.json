@@ -1,5 +1,4 @@
 {
   "rust-analyzer.linkedProjects": ["./Cargo.toml"],
-  "rust-analyzer.cargo.features": ["manual"],
   "editor.formatOnSave": true
 }
