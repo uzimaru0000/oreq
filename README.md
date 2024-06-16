@@ -1,4 +1,4 @@
-<h1 align="center">:wrench: oreq</h1>
+<h1 align="center">:writing_hand: oreq</h1>
 
 <h2 align="center"><em>OpenAPI Request Prompts</em></h2>
 
@@ -6,32 +6,28 @@
 [![](https://img.shields.io/github/v/release/uzimaru0000/oreq?style=for-the-badge)](https://github.com/uzimaru0000/oreq/releases/latest)
 ![](https://img.shields.io/github/downloads/uzimaru0000/oreq/total?style=for-the-badge)
 
-<h4 align="center">The tool for interactively creating curl arguments from OpenAPI.</h4>
-
-## WIP :construction:
-
-### TODO
-
-- [ ] Resolve external reference
+<h3 align="center">The tool for interactively creating curl arguments from OpenAPI.</h4>
 
 ## How to use
 
 ![demo](./.github/images/demo.gif)
 
-### USAGE
+## USAGE
 ```
 oreq [OPTIONS] <SCHEMA>
 ```
 
 ### OPTIONS
 ```
-Options:
-  -b, --base-url <BASE_URL>  Base URL
-  -H, --headers <HEADERS>    
-  -p, --path <PATH>          Path to request
-  -X, --request <METHOD>     Method to use
-  -h, --help                 Print help
-  -V, --version              Print version
+-b, --base-url <BASE_URL>        Base URL
+-H, --headers <HEADERS>
+-p, --path <PATH>                Path to request
+-X, --request <METHOD>           Method to use
+-P, --param <PATH_PARAM>         Path parameters
+-q, --query-param <QUERY_PARAM>  Query parameters
+-f, --field <FIELD>              Request body
+-h, --help                       Print help
+-V, --version                    Print version
 ```
 
 ### ARGS
@@ -39,7 +35,9 @@ Options:
 <SCHEMA>    OpenAPI schema path
 ```
 
-### Example
+## Example
+
+### Basic use case
 
 ```bash
 $ oreq github.yaml
@@ -48,7 +46,11 @@ $ oreq github.yaml
 > owner uzimaru0000
 > repo oreq
 -X GET 'https://api.github.com/repos/uzimaru0000/oreq'
+```
 
+### Send a request using curl
+
+```bash
 $ oreq github.yaml | xargs curl
 > Path /repos/{owner}/{repo}
 > Method GET
@@ -68,5 +70,21 @@ $ oreq github.yaml | xargs curl
     "gravatar_id": "",
     "url": "https://api.github.com/users/uzimaru0000",
     ....
-
 ```
+
+### Read schema from pipe
+
+```bash
+curl -s https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.yaml | oreq -
+> Path /repos/{owner}/{repo}
+> Method GET
+> owner uzimaru0000
+> repo oreq
+-X GET 'https://api.github.com/repos/uzimaru0000/oreq'
+```
+
+## WIP :construction:
+
+### TODO
+
+- [ ] Resolve external reference
