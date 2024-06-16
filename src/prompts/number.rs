@@ -146,14 +146,7 @@ pub struct Number {
 impl Number {
     pub fn new<T>(message: String, option: PromptOption<T>) -> Self
     where
-        T: Num
-            + PartialOrd
-            + Clone
-            + Default
-            + FromStr
-            + ToString
-            + Serialize
-            + 'static,
+        T: Num + PartialOrd + Clone + Default + FromStr + ToString + Serialize + 'static,
     {
         let enumeration = if option.enumeration.is_empty() {
             None
