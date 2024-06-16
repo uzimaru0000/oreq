@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde_json::Value;
 
 pub struct SerdeValue(Value);
@@ -8,9 +10,9 @@ impl From<Value> for SerdeValue {
     }
 }
 
-impl SerdeValue {
-    pub fn to_string(&self) -> String {
-        match &self.0 {
+impl Display for SerdeValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match &self.0 {
             Value::Bool(b) => b.to_string(),
             Value::Number(n) => n.to_string(),
             Value::String(s) => s.to_owned(),
@@ -22,6 +24,8 @@ impl SerdeValue {
                 .join(","),
             Value::Null => String::new(),
             _ => String::new(),
-        }
+        };
+
+        write!(f, "{}", string)
     }
 }

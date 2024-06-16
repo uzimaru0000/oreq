@@ -35,7 +35,7 @@ impl RequestInit {
             if let Params::Header(k, v) = header {
                 let v: SerdeValue = v.clone().into();
 
-                args.push(format!("-H '{}: {}'", k, v.to_string()));
+                args.push(format!("-H '{}: {}'", k, v));
             }
         }
 
