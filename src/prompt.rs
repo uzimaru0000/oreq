@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use http::Method;
 use indexmap::IndexMap;
 use openapiv3::{OpenAPI, Operation, Parameter, ParameterData, ParameterSchemaOrContent, PathItem};
 use promptuity::{prompts::SelectOption, Promptuity, Terminal, Theme};
@@ -47,14 +48,74 @@ where
         }
     }
 
-    pub fn run(&mut self) -> anyhow::Result<RequestInit> {
+    pub fn run(
+        &mut self,
+        path: Option<String>,
+        method: Option<Method>,
+        path_params: IndexMap<String, Value>,
+        query_params: IndexMap<String, Value>,
+        header: IndexMap<String, Value>,
+        fields: IndexMap<String, Value>,
+    ) -> anyhow::Result<RequestInit> {
         self.provider.term().clear()?;
 
         self.provider.begin()?;
-        let mut path = self.path_prompt()?;
-        let (path, path_item) = self.provider.prompt(&mut path)?;
-        let mut method = self.method_prompt(&path_item)?;
-        let (method, operation) = self.provider.prompt(&mut method)?;
+        let mut path_prompt = self.path_prompt()?;
+        let (path, path_item) = if let Some(path) = path {
+            let path_item = self
+                .api
+                .paths
+                .paths
+                .get(&path)
+                .ok_or_else(|| anyhow!("Path not found"))?;
+            let path_item = path_item.item(&self.api)?;
+            (path, path_item.clone())
+        } else {
+            self.provider.prompt(&mut path_prompt)?
+        };
+        let mut method_prompt = self.method_prompt(&path_item)?;
+        let (method, operation) = if let Some(method) = method {
+            match method {
+                Method::GET => {
+                    let operation = path_item
+                        .get
+                        .clone()
+                        .ok_or_else(|| anyhow!("Method not found"))?;
+                    ("GET".to_owned(), operation)
+                }
+                Method::POST => {
+                    let operation = path_item
+                        .post
+                        .clone()
+                        .ok_or_else(|| anyhow!("Method not found"))?;
+                    ("POST".to_owned(), operation)
+                }
+                Method::PUT => {
+                    let operation = path_item
+                        .put
+                        .clone()
+                        .ok_or_else(|| anyhow!("Method not found"))?;
+                    ("PUT".to_owned(), operation)
+                }
+                Method::DELETE => {
+                    let operation = path_item
+                        .delete
+                        .clone()
+                        .ok_or_else(|| anyhow!("Method not found"))?;
+                    ("DELETE".to_owned(), operation)
+                }
+                Method::PATCH => {
+                    let operation = path_item
+                        .patch
+                        .clone()
+                        .ok_or_else(|| anyhow!("Method not found"))?;
+                    ("PATCH".to_owned(), operation)
+                }
+                _ => self.provider.prompt(&mut method_prompt)?,
+            }
+        } else {
+            self.provider.prompt(&mut method_prompt)?
+        };
 
         let mut params_data = ParamsMap::default();
         for param in operation.parameters {
@@ -81,7 +142,11 @@ where
             self.provider.step("Path Parameters")?;
             for param in &params_data.path {
                 let mut prompt = self.parameter_prompt(param)?;
-                let value = self.provider.prompt(&mut *prompt)?;
+                let value = if let Some(value) = path_params.get(&param.name) {
+                    value.clone()
+                } else {
+                    self.provider.prompt(&mut *prompt)?
+                };
                 params.path.push(Params::Path(param.name.to_owned(), value));
             }
         }
@@ -90,7 +155,11 @@ where
             self.provider.step("Query Parameters")?;
             for param in &params_data.query {
                 let mut prompt = self.parameter_prompt(param)?;
-                let value = self.provider.prompt(&mut *prompt)?;
+                let value = if let Some(value) = query_params.get(&param.name) {
+                    value.clone()
+                } else {
+                    self.provider.prompt(&mut *prompt)?
+                };
                 params
                     .query
                     .push(Params::Query(param.name.to_owned(), Some(value)));
@@ -101,7 +170,11 @@ where
             self.provider.step("Header Parameters")?;
             for param in &params_data.header {
                 let mut prompt = self.parameter_prompt(param)?;
-                let value = self.provider.prompt(&mut *prompt)?;
+                let value = if let Some(value) = header.get(&param.name) {
+                    value.clone()
+                } else {
+                    self.provider.prompt(&mut *prompt)?
+                };
                 params
                     .header
                     .push(Params::Header(param.name.to_owned(), value));
@@ -128,7 +201,8 @@ where
                 .ok_or_else(|| anyhow!("Only supported 'application/json'"))?;
             let req_body = req_body.item(&self.api)?;
 
-            let mut prompt = prompt_builder(&self.api, req_body, "Request Body".to_owned());
+            let mut prompt =
+                prompt_builder(&self.api, req_body, "Request Body".to_owned(), Some(fields));
             let value = self.provider.prompt(&mut *prompt)?;
             Some(value)
         } else {
@@ -202,7 +276,12 @@ where
         match parameter.format.clone() {
             ParameterSchemaOrContent::Schema(schema) => {
                 let item = schema.item(&self.api)?;
-                Ok(prompt_builder(&self.api, item, parameter.name.clone()))
+                Ok(prompt_builder(
+                    &self.api,
+                    item,
+                    parameter.name.clone(),
+                    None,
+                ))
             }
             ParameterSchemaOrContent::Content(_) => Err(anyhow!("Content not supported")),
         }

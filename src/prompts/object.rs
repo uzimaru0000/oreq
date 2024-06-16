@@ -105,6 +105,14 @@ impl Object {
         self
     }
 
+    pub fn with_value(&mut self, value: IndexMap<String, Value>) -> &mut Self {
+        self.value = value
+            .into_iter()
+            .map(|(k, v)| (k, Some(v)))
+            .collect::<IndexMap<_, _>>();
+        self
+    }
+
     fn next_prompt(&mut self) -> Result<bool, promptuity::Error> {
         let mut prompt = self.prompts.pop_front();
         if let Some((_, prompt)) = &mut prompt {
@@ -128,13 +136,18 @@ impl Prompt for Object {
     type Output = Value;
 
     fn setup(&mut self) -> Result<(), promptuity::Error> {
-        for (key, schema) in self.option.properties.clone() {
+        let properties = self.option.properties.clone();
+        let properties = properties
+            .into_iter()
+            .filter(|(k, _)| !self.value.contains_key(k));
+
+        for (key, schema) in properties {
             let schema = schema.unbox();
             let schema = schema
                 .item(&self.api)
                 .map_err(|x| promptuity::Error::Config(x.to_string()))?;
 
-            let prompt = prompt_builder(&self.api, schema, key.clone());
+            let prompt = prompt_builder(&self.api, schema, key.clone(), None);
             self.prompts.push_back((key.clone(), prompt));
         }
 

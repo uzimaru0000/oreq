@@ -1,5 +1,6 @@
 use array::Array;
 use boolean::Boolean;
+use indexmap::IndexMap;
 use number::Number;
 use object::Object;
 use openapiv3::{OpenAPI, Schema, SchemaKind, Type};
@@ -20,6 +21,7 @@ pub fn prompt_builder(
     api: &OpenAPI,
     schema: &Schema,
     message: String,
+    default: Option<IndexMap<String, Value>>,
 ) -> Box<dyn Prompt<Output = Value>> {
     match &schema.schema_kind {
         SchemaKind::Type(Type::Boolean(_)) => Box::new(Boolean::new(message)),
@@ -33,7 +35,12 @@ pub fn prompt_builder(
             Box::new(Number::new(message, integer.clone().into()))
         }
         SchemaKind::Type(Type::Object(object)) => {
-            Box::new(Object::new(message, api, object.clone()))
+            let mut object = Object::new(message, api, object.clone());
+            if let Some(default) = default {
+                object.with_value(default);
+            }
+
+            Box::new(object)
         }
         SchemaKind::Type(Type::Array(array)) => Box::new(Array::new(message, api, array.clone())),
         _ => unimplemented!(),
