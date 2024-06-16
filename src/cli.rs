@@ -1,22 +1,20 @@
 use anyhow::{anyhow, Result};
 use http::Method;
 use openapiv3::OpenAPI;
+use promptuity::{themes::FancyTheme, Term};
 use serde_json::json;
-use std::{error::Error, path::PathBuf};
+use std::error::Error;
 
 use clap::Parser;
 
-use crate::{
-    error::AppError,
-    prompt::api::APIPrompt,
-    schema::{self, args_to_input_body},
-};
+use crate::{error::AppError, prompt::Prompt};
+use oreq::schema::read::ReadSchema;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 pub struct Cli {
     #[arg(help = "OpenAPI schema path", value_hint = clap::ValueHint::FilePath)]
-    pub schema: PathBuf,
+    pub schema: String,
     #[arg(long, short, help = "Base URL", value_hint = clap::ValueHint::Url)]
     pub base_url: Option<String>,
     #[arg(long, short = 'H', value_parser = parse_key_val::<String, String>)]
@@ -61,32 +59,24 @@ fn parse_body(
 
 impl Cli {
     pub fn run(&self) -> Result<(), AppError> {
-        let api = schema::ReadSchema::<OpenAPI>::get_schema(self.schema.clone())
-            .map_err(|_| AppError::SchemaError)?;
+        let api = if self.schema == "-" {
+            ReadSchema::<OpenAPI>::get_schema_from_stdin()
+        } else {
+            ReadSchema::<OpenAPI>::get_schema(self.schema.clone().into())
+        }
+        .map_err(|_| AppError::SchemaError)?;
         let server = self
             .base_url
             .clone()
             .or(api.schema.servers.first().map(|x| x.url.clone()))
             .ok_or(AppError::NoServers)?;
 
-        let mut init = APIPrompt::new(
-            &api,
-            &server,
-            self.path.clone(),
-            self.method.clone(),
-            self.path_param
-                .clone()
-                .and_then(|x| args_to_input_body(&x).ok()),
-            self.query_param
-                .clone()
-                .and_then(|x| args_to_input_body(&x).ok()),
-            self.field.clone().and_then(|x| args_to_input_body(&x).ok()),
-        )
-        .prompt()
-        .map_err(AppError::PromptError)?;
-        if let Some(from_cli) = self.headers.clone() {
-            init.header = [init.header, from_cli].concat();
-        }
+        let mut term = Term::default();
+        let mut theme = FancyTheme::default();
+        let mut init = Prompt::new(api.schema, &mut term, &mut theme)
+            .run()
+            .map_err(AppError::PromptError)?;
+        init.base = server;
         let args = init.to_curl_args().map_err(AppError::ParseError)?;
 
         println!("{}", args.join(" "));
