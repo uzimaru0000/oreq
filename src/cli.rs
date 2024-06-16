@@ -3,7 +3,7 @@ use http::Method;
 use openapiv3::OpenAPI;
 use promptuity::{themes::FancyTheme, Term};
 use serde_json::json;
-use std::{error::Error, path::PathBuf};
+use std::error::Error;
 
 use clap::Parser;
 
@@ -14,7 +14,7 @@ use oreq::schema::read::ReadSchema;
 #[command(author, version, about)]
 pub struct Cli {
     #[arg(help = "OpenAPI schema path", value_hint = clap::ValueHint::FilePath)]
-    pub schema: PathBuf,
+    pub schema: String,
     #[arg(long, short, help = "Base URL", value_hint = clap::ValueHint::Url)]
     pub base_url: Option<String>,
     #[arg(long, short = 'H', value_parser = parse_key_val::<String, String>)]
@@ -59,8 +59,12 @@ fn parse_body(
 
 impl Cli {
     pub fn run(&self) -> Result<(), AppError> {
-        let api = ReadSchema::<OpenAPI>::get_schema(self.schema.clone())
-            .map_err(|_| AppError::SchemaError)?;
+        let api = if self.schema == "-" {
+            ReadSchema::<OpenAPI>::get_schema_from_stdin()
+        } else {
+            ReadSchema::<OpenAPI>::get_schema(self.schema.clone().into())
+        }
+        .map_err(|_| AppError::SchemaError)?;
         let server = self
             .base_url
             .clone()

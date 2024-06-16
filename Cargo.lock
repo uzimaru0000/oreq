@@ -194,6 +194,7 @@ checksum = "f476fe445d41c9e991fd07515a6f463074b782242ccf4a5b7b1d1012e70824df"
 dependencies = [
  "bitflags 2.4.1",
  "crossterm_winapi",
+ "filedescriptor",
  "libc",
  "mio",
  "parking_lot",
@@ -225,6 +226,17 @@ checksum = "a258e46cdc063eb8519c00b9fc845fc47bcfca4130e2f08e88665ceda8474245"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "filedescriptor"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7199d965852c3bac31f779ef99cbb4537f80e952e2d6aa0ffeb30cce00f4f46e"
+dependencies = [
+ "libc",
+ "thiserror",
+ "winapi",
 ]
 
 [[package]]
@@ -409,6 +421,7 @@ version = "0.2.1"
 dependencies = [
  "anyhow",
  "clap",
+ "crossterm",
  "fuzzy-matcher",
  "http",
  "indexmap",

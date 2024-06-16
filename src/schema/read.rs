@@ -1,6 +1,12 @@
-use std::{env::current_dir, fs::File, io::Read, path::PathBuf};
+use std::{
+    env::current_dir,
+    fs::File,
+    io::{self, Read},
+    path::PathBuf,
+};
 
 use anyhow::{anyhow, Context as _};
+use crossterm::tty::IsTty;
 use serde::de::DeserializeOwned;
 
 enum SupportExt {
@@ -53,6 +59,25 @@ where
         Ok(Self {
             schema: result,
             base_dir,
+        })
+    }
+
+    pub fn get_schema_from_stdin() -> anyhow::Result<Self> {
+        let mut content = Vec::new();
+        if !io::stdin().is_tty() {
+            io::stdin().read_to_end(&mut content)?;
+        }
+
+        let yaml_result = serde_yaml::from_slice::<T>(&content);
+        let json_result = serde_json::from_slice::<T>(&content);
+
+        let result = yaml_result
+            .or(json_result)
+            .with_context(|| "Parse failed".to_string())?;
+
+        Ok(Self {
+            schema: result,
+            base_dir: current_dir()?,
         })
     }
 }
