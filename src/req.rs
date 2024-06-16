@@ -33,7 +33,9 @@ impl RequestInit {
 
         for header in self.header.iter() {
             if let Params::Header(k, v) = header {
-                args.push(format!("-H '{}: {}'", k, v));
+                let v: SerdeValue = v.clone().into();
+
+                args.push(format!("-H '{}: {}'", k, v.to_string()));
             }
         }
 
@@ -58,7 +60,7 @@ impl TryInto<Url> for RequestInit {
                     Some(
                         v.clone()
                             .map::<SerdeValue, _>(|x| x.into())
-                            .and_then(|x| x.to_query_string())
+                            .map(|x| x.to_string())
                             .map(|x| format!("{}={}", k, x))
                             .unwrap_or(k.clone()),
                     )
