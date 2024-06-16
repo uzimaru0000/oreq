@@ -162,7 +162,7 @@ impl Number {
                 .enumeration
                 .clone()
                 .into_iter()
-                .filter_map(|x| x)
+                .flatten()
                 .map(|value| {
                     let label = value.to_string();
                     SelectOption::new(label, json!(value))

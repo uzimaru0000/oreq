@@ -13,9 +13,7 @@ pub enum AppError {
 impl AppError {
     pub fn show(&self) -> (String, i32) {
         match self {
-            AppError::PromptError(e) => match e {
-                _ => (format!("Error: {}", e), 1),
-            },
+            AppError::PromptError(e) => (format!("Error: {}", e), 1),
             _ => (format!("Error: {}", self), 1),
         }
     }

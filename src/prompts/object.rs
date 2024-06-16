@@ -134,7 +134,7 @@ impl Prompt for Object {
                 .item(&self.api)
                 .map_err(|x| promptuity::Error::Config(x.to_string()))?;
 
-            let prompt = prompt_builder(&self.api, &schema, key.clone());
+            let prompt = prompt_builder(&self.api, schema, key.clone());
             self.prompts.push_back((key.clone(), prompt));
         }
 
