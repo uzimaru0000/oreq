@@ -59,7 +59,7 @@ where
     ) -> anyhow::Result<RequestInit> {
         self.provider.term().clear()?;
 
-        self.provider.begin()?;
+        self.provider.with_intro("Build Request").begin()?;
         let mut path_prompt = self.path_prompt()?;
         let (path, path_item) = if let Some(path) = path {
             let path_item = self
@@ -208,6 +208,8 @@ where
         } else {
             None
         };
+
+        self.provider.finish()?;
 
         Ok(RequestInit {
             method,
