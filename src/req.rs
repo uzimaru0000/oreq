@@ -1,15 +1,36 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use serde_json::Value;
 use url::Url;
 
 use crate::serde::SerdeValue;
 
-#[derive(Debug, Clone)]
-pub enum Params {
-    Query(String, Option<Value>),
-    Header(String, Value),
-    Path(String, Value),
-    Cookie(String, Value),
+pub struct ParamsValue(Value);
+impl From<Value> for ParamsValue {
+    fn from(value: Value) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for ParamsValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match &self.0 {
+            Value::Bool(b) => b.to_string(),
+            Value::Number(n) => n.to_string(),
+            Value::String(s) => s.to_owned(),
+            Value::Array(a) => a
+                .iter()
+                .map::<ParamsValue, _>(|x| x.clone().into())
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+            Value::Null => String::new(),
+            _ => String::new(),
+        };
+
+        write!(f, "{}", string)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -17,9 +38,9 @@ pub struct RequestInit {
     pub method: String,
     pub base: String,
     pub path: String,
-    pub query: Vec<Params>,
-    pub header: Vec<Params>,
-    pub cookie: Vec<Params>,
+    pub query: Vec<(String, Option<Value>)>,
+    pub header: Vec<(String, Value)>,
+    pub cookie: Vec<(String, Value)>,
     pub body: Option<Value>,
 }
 
@@ -31,12 +52,9 @@ impl RequestInit {
         let url: Url = self.clone().try_into()?;
         args.push(format!("'{}'", url));
 
-        for header in self.header.iter() {
-            if let Params::Header(k, v) = header {
-                let v: SerdeValue = v.clone().into();
-
-                args.push(format!("-H '{}: {}'", k, v));
-            }
+        for (k, v) in self.header.iter() {
+            let v: SerdeValue = v.clone().into();
+            args.push(format!("-H '{}: {}'", k, v));
         }
 
         if let Some(body) = &self.body {
@@ -55,18 +73,12 @@ impl TryInto<Url> for RequestInit {
         let query = self
             .query
             .iter()
-            .filter_map(|query| {
-                if let Params::Query(k, v) = query {
-                    Some(
-                        v.clone()
-                            .map::<SerdeValue, _>(|x| x.into())
-                            .map(|x| x.to_string())
-                            .map(|x| format!("{}={}", k, x))
-                            .unwrap_or(k.clone()),
-                    )
-                } else {
-                    None
-                }
+            .map(|(k, v)| {
+                v.clone()
+                    .map::<SerdeValue, _>(|x| x.into())
+                    .map(|x| x.to_string())
+                    .map(|x| format!("{}={}", k, x))
+                    .unwrap_or(k.clone())
             })
             .collect::<Vec<_>>();
 

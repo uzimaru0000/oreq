@@ -159,8 +159,11 @@ where
 
         match state {
             PromptState::Submit => {
-                let option = self.current_option().unwrap();
-                Ok(payload.input(PromptInput::Raw(option.label.clone())))
+                let option = self
+                    .current_option()
+                    .map(|x| x.label.clone())
+                    .unwrap_or_default();
+                Ok(payload.input(PromptInput::Raw(option)))
             }
 
             _ => {

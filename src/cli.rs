@@ -7,7 +7,7 @@ use std::error::Error;
 
 use clap::Parser;
 
-use crate::{error::AppError, prompt::Prompt, req::Params};
+use crate::{error::AppError, prompt::Prompt};
 use oreq::schema::read::ReadSchema;
 
 #[derive(Parser, Debug)]
@@ -64,7 +64,7 @@ impl Cli {
         } else {
             ReadSchema::<OpenAPI>::get_schema(self.schema.clone().into())
         }
-        .map_err(|_| AppError::SchemaError)?;
+        .map_err(|_| AppError::SchemaParseError)?;
         let server = self
             .base_url
             .clone()
@@ -73,32 +73,29 @@ impl Cli {
 
         let mut term = Term::default();
         let mut theme = FancyTheme::default();
-        let mut init = Prompt::new(api.schema, &mut term, &mut theme)
-            .run(
-                self.path.clone(),
-                self.method.clone(),
-                self.path_param
-                    .clone()
-                    .map(|x| x.into_iter().collect())
-                    .unwrap_or_default(),
-                self.query_param
-                    .clone()
-                    .map(|x| x.into_iter().collect())
-                    .unwrap_or_default(),
-                self.headers
-                    .clone()
-                    .map(|x| x.into_iter().collect())
-                    .unwrap_or_default(),
-                self.field
-                    .clone()
-                    .map(|x| x.into_iter().collect())
-                    .unwrap_or_default(),
-            )
-            .map_err(AppError::PromptError)?;
+        let mut init = Prompt::new(api.schema, &mut term, &mut theme).run(
+            self.path.clone(),
+            self.method.clone(),
+            self.path_param
+                .clone()
+                .map(|x| x.into_iter().collect())
+                .unwrap_or_default(),
+            self.query_param
+                .clone()
+                .map(|x| x.into_iter().collect())
+                .unwrap_or_default(),
+            self.headers
+                .clone()
+                .map(|x| x.into_iter().collect())
+                .unwrap_or_default(),
+            self.field
+                .clone()
+                .map(|x| x.into_iter().collect())
+                .unwrap_or_default(),
+        )?;
         init.base = server;
         if let Some(headers) = self.headers.clone() {
-            init.header
-                .extend(headers.into_iter().map(|(k, v)| Params::Header(k, v)));
+            init.header.extend(headers);
         }
         let args = init.to_curl_args().map_err(AppError::ParseError)?;
 

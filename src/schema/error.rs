@@ -6,4 +6,6 @@ pub enum SchemaError {
     ReferenceError(String),
     #[error("Unsupported external reference. Please bundle your schema")]
     UnsupportedExternalReference,
+    #[error("Unsupported schema type")]
+    UnsupportedSchema,
 }
