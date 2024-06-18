@@ -12,6 +12,90 @@
 
 ![demo](./.github/images/demo.gif)
 
+## Example
+
+### Basic use case
+
+```bash
+$ oreq github.yaml
+┌   Build Request 
+│
+◇  Path
+│  /repos/{owner}/{repo}
+│
+◇  Method
+│  GET
+│
+◇  Path Parameters
+◇  owner
+│  uzimaru0000
+│
+◇  repo
+│  oreq
+│
+
+-X GET 'https://api.github.com/repos/uzimaru0000/oreq'
+```
+
+### Send a request using curl
+
+```bash
+$ oreq github.yaml | xargs curl
+┌   Build Request 
+│
+◇  Path
+│  /repos/{owner}/{repo}
+│
+◇  Method
+│  GET
+│
+◇  Path Parameters
+◇  owner
+│  uzimaru0000
+│
+◇  repo
+│  oreq
+│
+
+{
+  "id": 736848036,
+  "node_id": "R_kgDOK-topA",
+  "name": "oreq",
+  "full_name": "uzimaru0000/oreq",
+  "private": false,
+  "owner": {
+    "login": "uzimaru0000",
+    "id": 13715034,
+    "node_id": "MDQ6VXNlcjEzNzE1MDM0",
+    "avatar_url": "https://avatars.githubusercontent.com/u/13715034?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/uzimaru0000",
+    ....
+```
+
+### Read schema from pipe
+
+```bash
+curl -s https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.yaml | oreq -
+┌   Build Request 
+│
+◇  Path
+│  /repos/{owner}/{repo}
+│
+◇  Method
+│  GET
+│
+◇  Path Parameters
+◇  owner
+│  uzimaru0000
+│
+◇  repo
+│  oreq
+│
+
+-X GET 'https://api.github.com/repos/uzimaru0000/oreq'
+```
+
 ## USAGE
 ```
 oreq [OPTIONS] <SCHEMA>
@@ -33,54 +117,6 @@ oreq [OPTIONS] <SCHEMA>
 ### ARGS
 ```
 <SCHEMA>    OpenAPI schema path
-```
-
-## Example
-
-### Basic use case
-
-```bash
-$ oreq github.yaml
-> Path /repos/{owner}/{repo}
-> Method GET
-> owner uzimaru0000
-> repo oreq
--X GET 'https://api.github.com/repos/uzimaru0000/oreq'
-```
-
-### Send a request using curl
-
-```bash
-$ oreq github.yaml | xargs curl
-> Path /repos/{owner}/{repo}
-> Method GET
-> owner uzimaru0000
-> repo oreq
-{
-  "id": 736848036,
-  "node_id": "R_kgDOK-topA",
-  "name": "oreq",
-  "full_name": "uzimaru0000/oreq",
-  "private": false,
-  "owner": {
-    "login": "uzimaru0000",
-    "id": 13715034,
-    "node_id": "MDQ6VXNlcjEzNzE1MDM0",
-    "avatar_url": "https://avatars.githubusercontent.com/u/13715034?v=4",
-    "gravatar_id": "",
-    "url": "https://api.github.com/users/uzimaru0000",
-    ....
-```
-
-### Read schema from pipe
-
-```bash
-curl -s https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.yaml | oreq -
-> Path /repos/{owner}/{repo}
-> Method GET
-> owner uzimaru0000
-> repo oreq
--X GET 'https://api.github.com/repos/uzimaru0000/oreq'
 ```
 
 ## WIP :construction:
