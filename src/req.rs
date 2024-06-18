@@ -4,8 +4,6 @@ use anyhow::Result;
 use serde_json::Value;
 use url::Url;
 
-use crate::serde::SerdeValue;
-
 pub struct ParamsValue(Value);
 impl From<Value> for ParamsValue {
     fn from(value: Value) -> Self {
@@ -53,7 +51,7 @@ impl RequestInit {
         args.push(format!("'{}'", url));
 
         for (k, v) in self.header.iter() {
-            let v: SerdeValue = v.clone().into();
+            let v: ParamsValue = v.clone().into();
             args.push(format!("-H '{}: {}'", k, v));
         }
 
@@ -72,13 +70,12 @@ impl TryInto<Url> for RequestInit {
         let mut url = Url::parse(&format!("{}{}", self.base, self.path))?;
         let query = self
             .query
-            .iter()
-            .map(|(k, v)| {
-                v.clone()
-                    .map::<SerdeValue, _>(|x| x.into())
-                    .map(|x| x.to_string())
-                    .map(|x| format!("{}={}", k, x))
-                    .unwrap_or(k.clone())
+            .into_iter()
+            .filter_map(|(k, v)| v.map(|v| (k.clone(), v)))
+            .filter_map(|(k, v)| match v {
+                Value::Bool(true) => Some(format!("{}", k)),
+                Value::Bool(false) => None,
+                _ => Some(format!("{}={}", k, ParamsValue(v).to_string())),
             })
             .collect::<Vec<_>>();
 
