@@ -73,9 +73,9 @@ impl TryInto<Url> for RequestInit {
             .into_iter()
             .filter_map(|(k, v)| v.map(|v| (k.clone(), v)))
             .filter_map(|(k, v)| match v {
-                Value::Bool(true) => Some(format!("{}", k)),
+                Value::Bool(true) => Some(k.to_string()),
                 Value::Bool(false) => None,
-                _ => Some(format!("{}={}", k, ParamsValue(v).to_string())),
+                _ => Some(format!("{}={}", k, ParamsValue(v))),
             })
             .collect::<Vec<_>>();
 
