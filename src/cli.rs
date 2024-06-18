@@ -99,7 +99,7 @@ impl Cli {
         }
         let args = init.to_curl_args().map_err(AppError::ParseError)?;
 
-        eprint!("\n");
+        eprintln!();
         println!("{}", args.join(" "));
 
         Ok(())
