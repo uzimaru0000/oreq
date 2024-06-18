@@ -5,12 +5,15 @@ use openapiv3::{OpenAPI, Operation, Parameter, ParameterData, ParameterSchemaOrC
 use promptuity::{prompts::SelectOption, Promptuity, Terminal, Theme};
 
 use oreq::{
-    prompts::{enumeration::Enumeration, prompt_builder},
-    schema::reference::ReferenceOrExt,
+    prompts::{enumeration::Enumeration, optional_prompt_builder, prompt_builder},
+    schema::{error::SchemaError, reference::ReferenceOrExt},
 };
 use serde_json::Value;
 
-use crate::req::{Params, RequestInit};
+use crate::{
+    error::AppError,
+    req::{ParamsValue, RequestInit},
+};
 
 struct ParamsMap<T> {
     query: Vec<T>,
@@ -25,6 +28,19 @@ impl<T> Default for ParamsMap<T> {
             header: Vec::new(),
             path: Vec::new(),
             cookie: Vec::new(),
+        }
+    }
+}
+impl<T> From<IndexMap<String, Vec<T>>> for ParamsMap<T>
+where
+    T: Clone,
+{
+    fn from(map: IndexMap<String, Vec<T>>) -> Self {
+        Self {
+            query: map.get("query").cloned().unwrap_or_default(),
+            header: map.get("header").cloned().unwrap_or_default(),
+            path: map.get("path").cloned().unwrap_or_default(),
+            cookie: map.get("cookie").cloned().unwrap_or_default(),
         }
     }
 }
@@ -56,7 +72,7 @@ where
         query_params: IndexMap<String, Value>,
         header: IndexMap<String, Value>,
         fields: IndexMap<String, Value>,
-    ) -> anyhow::Result<RequestInit> {
+    ) -> Result<RequestInit, AppError> {
         self.provider.term().clear()?;
 
         self.provider.with_intro("Build Request").begin()?;
@@ -138,57 +154,57 @@ where
         }
 
         let mut params = ParamsMap::default();
-        if !params_data.path.is_empty() {
-            self.provider.step("Path Parameters")?;
-            for param in &params_data.path {
-                let mut prompt = self.parameter_prompt(param)?;
-                let value = if let Some(value) = path_params.get(&param.name) {
-                    value.clone()
-                } else {
-                    self.provider.prompt(&mut *prompt)?
-                };
-                params.path.push(Params::Path(param.name.to_owned(), value));
-            }
-        }
+        let prompts = vec![
+            (
+                &mut params.path,
+                &params_data.path,
+                path_params,
+                "Path Parameters",
+            ),
+            (
+                &mut params.query,
+                &params_data.query,
+                query_params,
+                "Query Parameters",
+            ),
+            (
+                &mut params.header,
+                &params_data.header,
+                header,
+                "Header Parameters",
+            ),
+            (
+                &mut params.cookie,
+                &params_data.cookie,
+                IndexMap::new(),
+                "Cookie Parameters",
+            ),
+        ];
 
-        if !params_data.query.is_empty() {
-            self.provider.step("Query Parameters")?;
-            for param in &params_data.query {
-                let mut prompt = self.parameter_prompt(param)?;
-                let value = if let Some(value) = query_params.get(&param.name) {
-                    value.clone()
-                } else {
-                    self.provider.prompt(&mut *prompt)?
-                };
-                params
-                    .query
-                    .push(Params::Query(param.name.to_owned(), Some(value)));
+        for (map, data, cli_input, msg) in prompts {
+            if data.is_empty() {
+                continue;
             }
-        }
 
-        if !params_data.header.is_empty() {
-            self.provider.step("Header Parameters")?;
-            for param in &params_data.header {
-                let mut prompt = self.parameter_prompt(param)?;
-                let value = if let Some(value) = header.get(&param.name) {
-                    value.clone()
+            self.provider.step(msg)?;
+            for param in data {
+                let value = if param.required {
+                    let mut prompt = self.parameter_prompt(param)?;
+                    if let Some(value) = cli_input.get(&param.name) {
+                        Some(value.clone())
+                    } else {
+                        Some(self.provider.prompt(&mut *prompt)?)
+                    }
                 } else {
-                    self.provider.prompt(&mut *prompt)?
+                    let mut prompt = self.optional_parameter_prompt(param)?;
+                    if let Some(value) = cli_input.get(&param.name) {
+                        Some(value.clone())
+                    } else {
+                        self.provider.prompt(&mut *prompt)?
+                    }
                 };
-                params
-                    .header
-                    .push(Params::Header(param.name.to_owned(), value));
-            }
-        }
 
-        if !params_data.cookie.is_empty() {
-            self.provider.step("Cookie Parameters")?;
-            for param in &params_data.cookie {
-                let mut prompt = self.parameter_prompt(param)?;
-                let value = self.provider.prompt(&mut *prompt)?;
-                params
-                    .cookie
-                    .push(Params::Cookie(param.name.to_owned(), value));
+                map.push((param.name.to_owned(), value));
             }
         }
 
@@ -214,29 +230,29 @@ where
         Ok(RequestInit {
             method,
             base: String::new(),
-            path: params.path.iter().fold(path, |acc, x| {
-                if let Params::Path(name, value) = x {
-                    let value = match value {
-                        Value::Bool(b) => b.to_string(),
-                        Value::Number(n) => n.to_string(),
-                        Value::String(s) => s.to_owned(),
-                        Value::Null => "".to_owned(),
-                        _ => "".to_owned(),
-                    };
-
+            path: params
+                .path
+                .into_iter()
+                .filter_map(|(k, v)| v.map(|v| (k.to_owned(), ParamsValue::from(v))))
+                .fold(path, |acc, (name, value)| {
                     acc.replace(&format!("{{{}}}", name), &value.to_string())
-                } else {
-                    acc
-                }
-            }),
+                }),
             query: params.query,
-            header: params.header,
-            cookie: params.cookie,
+            header: params
+                .header
+                .into_iter()
+                .filter_map(|(k, v)| v.map(|v| (k.to_owned(), v)))
+                .collect(),
+            cookie: params
+                .cookie
+                .into_iter()
+                .filter_map(|(k, v)| v.map(|v| (k.to_owned(), v)))
+                .collect(),
             body: req_body,
         })
     }
 
-    fn path_prompt(&self) -> anyhow::Result<Enumeration<(String, PathItem)>> {
+    fn path_prompt(&self) -> Result<Enumeration<(String, PathItem)>, SchemaError> {
         let mut paths = IndexMap::new();
 
         for (path, path_item) in self.api.paths.clone() {
@@ -255,7 +271,7 @@ where
     fn method_prompt(
         &self,
         path_item: &PathItem,
-    ) -> anyhow::Result<Enumeration<(String, Operation)>> {
+    ) -> Result<Enumeration<(String, Operation)>, SchemaError> {
         let options = vec![
             ("GET", path_item.get.clone()),
             ("POST", path_item.post.clone()),
@@ -274,7 +290,7 @@ where
     fn parameter_prompt(
         &self,
         parameter: &ParameterData,
-    ) -> anyhow::Result<Box<dyn promptuity::Prompt<Output = Value>>> {
+    ) -> Result<Box<dyn promptuity::Prompt<Output = Value>>, SchemaError> {
         match parameter.format.clone() {
             ParameterSchemaOrContent::Schema(schema) => {
                 let item = schema.item(&self.api)?;
@@ -285,7 +301,25 @@ where
                     None,
                 ))
             }
-            ParameterSchemaOrContent::Content(_) => Err(anyhow!("Content not supported")),
+            ParameterSchemaOrContent::Content(_) => Err(SchemaError::UnsupportedSchema),
+        }
+    }
+
+    fn optional_parameter_prompt(
+        &self,
+        parameter: &ParameterData,
+    ) -> Result<Box<dyn promptuity::Prompt<Output = Option<Value>>>, SchemaError> {
+        match parameter.format.clone() {
+            ParameterSchemaOrContent::Schema(schema) => {
+                let item = schema.item(&self.api)?;
+                Ok(optional_prompt_builder(
+                    &self.api,
+                    item,
+                    parameter.name.clone(),
+                    None,
+                ))
+            }
+            ParameterSchemaOrContent::Content(_) => Err(SchemaError::UnsupportedSchema),
         }
     }
 }
