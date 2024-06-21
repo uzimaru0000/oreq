@@ -1,5 +1,7 @@
 use oreq::schema::error::SchemaError;
 
+use crate::fmt::FormatError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("Invalid schema")]
@@ -14,6 +16,8 @@ pub enum AppError {
     AnyError(#[from] anyhow::Error),
     #[error("Failed to parse URL")]
     ParseError(#[from] url::ParseError),
+    #[error("transparent")]
+    FormatError(#[from] FormatError),
 }
 
 impl AppError {

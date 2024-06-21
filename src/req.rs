@@ -42,27 +42,6 @@ pub struct RequestInit {
     pub body: Option<Value>,
 }
 
-impl RequestInit {
-    pub fn to_curl_args(&self) -> Result<Vec<String>, url::ParseError> {
-        let mut args = vec![];
-
-        args.push(format!("-X {}", self.method));
-        let url: Url = self.clone().try_into()?;
-        args.push(format!("'{}'", url));
-
-        for (k, v) in self.header.iter() {
-            let v: ParamsValue = v.clone().into();
-            args.push(format!("-H '{}: {}'", k, v));
-        }
-
-        if let Some(body) = &self.body {
-            args.push(format!("-d '{}'", body));
-        }
-
-        Ok(args)
-    }
-}
-
 impl TryInto<Url> for RequestInit {
     type Error = url::ParseError;
 

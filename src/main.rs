@@ -4,6 +4,7 @@ use clap::Parser;
 
 mod cli;
 mod error;
+mod fmt;
 mod prompt;
 mod req;
 
