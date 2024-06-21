@@ -1,11 +1,15 @@
 use anyhow::{anyhow, Result};
 use http::Method;
+use indoc::indoc;
 use openapiv3::OpenAPI;
 use promptuity::{themes::FancyTheme, Term};
 use serde_json::{json, Value};
 use std::error::Error;
 
-use clap::Parser;
+use clap::{
+    builder::{styling, Styles},
+    Parser,
+};
 
 use crate::{
     error::AppError,
@@ -15,14 +19,19 @@ use crate::{
 use oreq::schema::read::ReadSchema;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about)]
+#[command(
+    author,
+    version,
+    about,
+    arg_required_else_help = true,
+    styles = styles(),
+    help_template = HELP_TEMPLATE
+)]
 pub struct Cli {
-    #[arg(help = "OpenAPI schema path", value_hint = clap::ValueHint::FilePath)]
+    #[arg(help = "OpenAPI schema path. Use a dash ('-') to read from standard input.", value_hint = clap::ValueHint::FilePath)]
     pub schema: String,
     #[arg(long, short, help = "Base URL", value_hint = clap::ValueHint::Url)]
     pub base_url: Option<String>,
-    #[arg(long, short = 'H', value_parser = parse_key_val)]
-    pub headers: Option<Vec<(String, serde_json::Value)>>,
     #[arg(long, short, help = "Path to request")]
     pub path: Option<String>,
     #[arg(long = "request", short = 'X', help = "Method to use")]
@@ -31,6 +40,8 @@ pub struct Cli {
     pub path_param: Option<Vec<(String, serde_json::Value)>>,
     #[arg(long, short, help = "Query parameters", value_parser = parse_body)]
     pub query_param: Option<Vec<(String, serde_json::Value)>>,
+    #[arg(long, short = 'H', value_parser = parse_key_val)]
+    pub headers: Option<Vec<(String, serde_json::Value)>>,
     #[arg(long, short, help = "Request body", value_parser = parse_body)]
     pub field: Option<Vec<(String, serde_json::Value)>>,
     #[arg(long = "format", help = "Output format", default_value = "curl")]
@@ -62,6 +73,26 @@ fn parse_body(
 
     Ok((key, value))
 }
+
+fn styles() -> Styles {
+    Styles::styled()
+        .usage(styling::AnsiColor::Yellow.on_default() | styling::Effects::UNDERLINE)
+        .header(styling::AnsiColor::Yellow.on_default() | styling::Effects::UNDERLINE)
+        .literal(styling::AnsiColor::Green.on_default())
+        .placeholder(styling::AnsiColor::Green.on_default())
+}
+
+const HELP_TEMPLATE: &str = indoc! {r#"
+    {bin} v{version}
+    {author}
+    
+    {about}
+
+    {usage-heading}
+    {tab}{usage}
+
+    {all-args}
+"#};
 
 impl Cli {
     pub fn run(&self) -> Result<(), AppError> {
