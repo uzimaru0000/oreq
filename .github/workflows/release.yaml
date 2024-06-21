@@ -26,13 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: ./.github/actions/cache_cargo
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v3
 
       - uses: actions-rs/cargo@v1.0.1
         with:
@@ -121,11 +116,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ./.github/actions/cache_cargo
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v3
       - uses: actions-rs/cargo@v1.0.1
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
