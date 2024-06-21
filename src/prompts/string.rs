@@ -32,7 +32,7 @@ impl From<StringType> for PromptOption {
 impl Validator<String> for PromptOption {
     fn validate(&self, value: &String) -> Result<(), String> {
         if let Some(pattern) = &self.pattern {
-            let re = regex::Regex::new(pattern).unwrap();
+            let re = regex::Regex::new(pattern).map_err(|err| err.to_string())?;
             if !re.is_match(value) {
                 return Err(format!("Value does not match pattern: {}", pattern));
             }

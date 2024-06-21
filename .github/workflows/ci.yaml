@@ -13,7 +13,8 @@ jobs:
       RUSTC_FORCE_INCREMENTAL: 1
     steps:
       - uses: actions/checkout@v2
-      - uses: ./.github/actions/cache_cargo
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v3
       - name: build
         run: cargo build
 
@@ -22,8 +23,8 @@ jobs:
     needs: build_cache
     steps:
       - uses: actions/checkout@v2
-      - run: rustup component add rustfmt
-      - uses: ./.github/actions/cache_cargo
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v3
       - name: fmt
         run: cargo fmt --all -- --check
 
@@ -34,8 +35,8 @@ jobs:
     needs: build_cache
     steps:
       - uses: actions/checkout@v2
-      - run: rustup component add clippy
-      - uses: ./.github/actions/cache_cargo
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v3
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
@@ -46,6 +47,7 @@ jobs:
     needs: build_cache
     steps:
       - uses: actions/checkout@v2
-      - uses: ./.github/actions/cache_cargo
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v3
       - name: test
         run: cargo test --all -- --nocapture

@@ -2,12 +2,16 @@ use anyhow::{anyhow, Result};
 use http::Method;
 use openapiv3::OpenAPI;
 use promptuity::{themes::FancyTheme, Term};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::error::Error;
 
 use clap::Parser;
 
-use crate::{error::AppError, prompt::Prompt};
+use crate::{
+    error::AppError,
+    fmt::{Formatter, RequestFormatter},
+    prompt::Prompt,
+};
 use oreq::schema::read::ReadSchema;
 
 #[derive(Parser, Debug)]
@@ -17,7 +21,7 @@ pub struct Cli {
     pub schema: String,
     #[arg(long, short, help = "Base URL", value_hint = clap::ValueHint::Url)]
     pub base_url: Option<String>,
-    #[arg(long, short = 'H', value_parser = parse_key_val::<String, String>)]
+    #[arg(long, short = 'H', value_parser = parse_key_val)]
     pub headers: Option<Vec<(String, serde_json::Value)>>,
     #[arg(long, short, help = "Path to request")]
     pub path: Option<String>,
@@ -29,22 +33,21 @@ pub struct Cli {
     pub query_param: Option<Vec<(String, serde_json::Value)>>,
     #[arg(long, short, help = "Request body", value_parser = parse_body)]
     pub field: Option<Vec<(String, serde_json::Value)>>,
+    #[arg(long = "format", help = "Output format", default_value = "curl")]
+    pub fmt: Formatter,
 }
 
-fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
-where
-    T: std::str::FromStr,
-    T::Err: Error + Send + Sync + 'static,
-    U: std::str::FromStr,
-    U::Err: Error + Send + Sync + 'static,
-{
-    let mut split = s.split(':');
-    let key = split.next().ok_or(anyhow!("No key"))?;
+fn parse_key_val(
+    s: &str,
+) -> Result<(String, serde_json::Value), Box<dyn Error + Send + Sync + 'static>> {
+    let (key, value) = s.split_once(':').ok_or(anyhow!("Invalid format"))?;
     let key = key.trim();
-    let value = split.next().ok_or(anyhow!("No value"))?;
     let value = value.trim();
 
-    Ok((key.parse()?, value.parse()?))
+    let key = key.to_string();
+    let value = value.parse::<Value>().unwrap_or_else(|_| json!(value));
+
+    Ok((key, value))
 }
 
 fn parse_body(
@@ -54,7 +57,10 @@ fn parse_body(
     let key = key.trim();
     let value = value.trim();
 
-    Ok((key.to_string(), json!(value)))
+    let key = key.to_string();
+    let value = value.parse::<Value>().unwrap_or_else(|_| json!(value));
+
+    Ok((key, value))
 }
 
 impl Cli {
@@ -97,10 +103,11 @@ impl Cli {
         if let Some(headers) = self.headers.clone() {
             init.header.extend(headers);
         }
-        let args = init.to_curl_args().map_err(AppError::ParseError)?;
+        let fmt: Box<dyn RequestFormatter> = self.fmt.clone().into();
+        let out = fmt.format(&init)?;
 
         eprintln!();
-        println!("{}", args.join(" "));
+        println!("{}", out);
 
         Ok(())
     }
