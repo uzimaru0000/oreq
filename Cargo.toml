@@ -1,7 +1,7 @@
 [package]
 name = "oreq"
 description = "The tool for interactively creating curl arguments from OpenAPI."
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 authors = ["uzimaru0000 <shuji365630@gmail.com>"]
 license = "MIT"
@@ -27,10 +27,6 @@ clap = { version = "4.4.5", features = [
     "suggestions",
     "derive",
     "cargo",
-    "wrap_help",
-    "unicode",
-    "string",
-    "unstable-styles",
 ] }
 crossterm = { version = "0.27.0", features = ["use-dev-tty"] }
 fuzzy-matcher = "0.3.7"
