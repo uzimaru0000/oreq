@@ -217,8 +217,13 @@ where
                 .ok_or_else(|| anyhow!("Only supported 'application/json'"))?;
             let req_body = req_body.item(&self.api)?;
 
-            let mut prompt =
-                prompt_builder(&self.api, req_body, "Request Body".to_owned(), Some(fields));
+            let mut prompt = prompt_builder(
+                &self.api,
+                req_body,
+                "Request Body".to_owned(),
+                req_body.schema_data.description.clone(),
+                Some(fields),
+            );
             let value = self.provider.prompt(&mut *prompt)?;
             Some(value)
         } else {
@@ -262,7 +267,14 @@ where
 
         let options = paths
             .into_iter()
-            .map(|(path, item)| SelectOption::new(path.to_owned(), (path.to_owned(), item.clone())))
+            .map(|(path, item)| {
+                let opts = SelectOption::new(path.to_owned(), (path.to_owned(), item.clone()));
+                if let Some(description) = item.description {
+                    opts.with_hint(description)
+                } else {
+                    opts
+                }
+            })
             .collect();
 
         Ok(Enumeration::new("Path".to_owned(), options))
@@ -281,7 +293,7 @@ where
         ]
         .into_iter()
         .filter_map(|(k, x)| x.map(|v| (k, v)))
-        .map(|(k, v)| SelectOption::new(k.to_owned(), (k.to_owned(), v)))
+        .map(|(k, v)| SelectOption::new(k.to_owned(), (k.to_owned(), v.clone())))
         .collect::<Vec<_>>();
 
         Ok(Enumeration::new("Method".to_owned(), options))
@@ -298,6 +310,7 @@ where
                     &self.api,
                     item,
                     parameter.name.clone(),
+                    parameter.description.clone(),
                     None,
                 ))
             }
@@ -316,6 +329,7 @@ where
                     &self.api,
                     item,
                     parameter.name.clone(),
+                    parameter.description.clone(),
                     None,
                 ))
             }

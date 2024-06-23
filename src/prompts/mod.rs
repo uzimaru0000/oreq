@@ -23,19 +23,41 @@ pub fn optional_prompt_builder(
     api: &OpenAPI,
     schema: &Schema,
     message: String,
+    hint: Option<String>,
     default: Option<IndexMap<String, Value>>,
 ) -> Box<dyn Prompt<Output = Option<Value>>> {
     match &schema.schema_kind {
-        SchemaKind::Type(Type::Boolean(_)) => Box::new(Skippable::new(Boolean::new(message))),
-        SchemaKind::Type(Type::String(string)) => Box::new(Skippable::new(StringPrompt::new(
-            message,
-            string.clone().into(),
-        ))),
+        SchemaKind::Type(Type::Boolean(_)) => {
+            let mut p = Boolean::new(message);
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+
+            Box::new(Skippable::new(p))
+        }
+        SchemaKind::Type(Type::String(string)) => {
+            let mut p = StringPrompt::new(message, string.clone().into());
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+
+            Box::new(Skippable::new(p))
+        }
         SchemaKind::Type(Type::Number(number)) => {
-            Box::new(Skippable::new(Number::new(message, number.clone().into())))
+            let mut p = Number::new(message, number.clone().into());
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+
+            Box::new(Skippable::new(p))
         }
         SchemaKind::Type(Type::Integer(integer)) => {
-            Box::new(Skippable::new(Number::new(message, integer.clone().into())))
+            let mut p = Number::new(message, integer.clone().into());
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+
+            Box::new(Skippable::new(p))
         }
         SchemaKind::Type(Type::Object(object)) => {
             let mut object = Object::new(message, api, object.clone());
@@ -56,18 +78,37 @@ pub fn prompt_builder(
     api: &OpenAPI,
     schema: &Schema,
     message: String,
+    hint: Option<String>,
     default: Option<IndexMap<String, Value>>,
 ) -> Box<dyn Prompt<Output = Value>> {
     match &schema.schema_kind {
-        SchemaKind::Type(Type::Boolean(_)) => Box::new(Boolean::new(message)),
+        SchemaKind::Type(Type::Boolean(_)) => {
+            let mut p = Boolean::new(message);
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+            Box::new(p)
+        }
         SchemaKind::Type(Type::String(string)) => {
-            Box::new(StringPrompt::new(message, string.clone().into()))
+            let mut p = StringPrompt::new(message, string.clone().into());
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+            Box::new(p)
         }
         SchemaKind::Type(Type::Number(number)) => {
-            Box::new(Number::new(message, number.clone().into()))
+            let mut p = Number::new(message, number.clone().into());
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+            Box::new(p)
         }
         SchemaKind::Type(Type::Integer(integer)) => {
-            Box::new(Number::new(message, integer.clone().into()))
+            let mut p = Number::new(message, integer.clone().into());
+            if let Some(hint) = hint {
+                p.with_hint(hint);
+            };
+            Box::new(p)
         }
         SchemaKind::Type(Type::Object(object)) => {
             let mut object = Object::new(message, api, object.clone());

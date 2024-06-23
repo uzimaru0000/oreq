@@ -2,16 +2,19 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use promptuity::{
     event::{KeyCode, KeyModifiers},
     pagination::paginate,
-    prompts::{DefaultSelectFormatter, SelectFormatter, SelectOption},
+    prompts::{SelectFormatter, SelectOption},
     style::{Color, Styled},
     Error, InputCursor, Prompt, PromptBody, PromptInput, PromptState, RenderPayload,
 };
+
+struct EnumerationFormatter;
+impl SelectFormatter for EnumerationFormatter {}
 
 pub struct Enumeration<T>
 where
     T: Default + Clone,
 {
-    formatter: DefaultSelectFormatter,
+    formatter: Box<dyn SelectFormatter>,
     message: String,
     page_size: usize,
     options: Vec<SelectOption<T>>,
@@ -27,7 +30,7 @@ where
 {
     pub fn new(message: String, options: Vec<SelectOption<T>>) -> Self {
         Self {
-            formatter: DefaultSelectFormatter::new(),
+            formatter: Box::new(EnumerationFormatter),
             message,
             page_size: 8,
             options,

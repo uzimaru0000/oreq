@@ -108,7 +108,13 @@ impl Array {
 
                 let idx = self.value.len();
                 let msg = format!("{}[{}]", self.message, idx);
-                let mut prompt = prompt_builder(&self.api, item, msg, None);
+                let mut prompt = prompt_builder(
+                    &self.api,
+                    item,
+                    msg,
+                    item.schema_data.description.clone(),
+                    None,
+                );
                 prompt.setup()?;
                 self.current_prompt = Some(prompt);
 

@@ -1,9 +1,11 @@
 use std::collections::VecDeque;
 
+use crossterm::style::Color;
 use indexmap::IndexMap;
 use openapiv3::{AdditionalProperties, ObjectType, OpenAPI, ReferenceOr, Schema};
 use promptuity::{
     event::{KeyCode, KeyModifiers},
+    style::Styled,
     Prompt, PromptBody, PromptState, RenderPayload,
 };
 use serde_json::{json, Value};
@@ -38,8 +40,11 @@ impl ObjectFormatter for DefaultObjectFormatter {
         let prompt_input = fmt_input(&payload.input);
         let prompt_body = fmt_body(&payload.body);
         let required = if !is_required { "?" } else { "" };
+        let prompt_hint = Styled::new(payload.hint.map(|x| format!("{}\n", x)).unwrap_or_default())
+            .fg(Color::DarkGrey)
+            .to_string();
 
-        format!("{key}{required}: {prompt_input}\n{prompt_body}")
+        format!("{key}{required}: {prompt_input}\n{prompt_hint}{prompt_body}")
     }
 
     fn fmt_submit(&self, value: IndexMap<String, Value>) -> String {
@@ -147,7 +152,13 @@ impl Prompt for Object {
                 .item(&self.api)
                 .map_err(|x| promptuity::Error::Config(x.to_string()))?;
 
-            let prompt = prompt_builder(&self.api, schema, key.clone(), None);
+            let prompt = prompt_builder(
+                &self.api,
+                schema,
+                key.clone(),
+                schema.schema_data.description.clone(),
+                None,
+            );
             self.prompts.push_back((key.clone(), prompt));
         }
 
